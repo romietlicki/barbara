@@ -1,0 +1,5 @@
+Usuários de teste (senha: changeme123):
+
+admin@acme.com → AGENCY_ADMIN
+user@empresa.com → TENANT_USER (empresa de casamento)
+admin@platform.com → SUPER_ADMIN

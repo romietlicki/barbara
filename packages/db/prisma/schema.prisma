@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AGÊNCIA — nível white-label (compra licença da plataforma)
+// ============================================================
+model Agency {
+  id               String     @id @default(cuid())
+  name             String
+  slug             String     @unique
+  logoUrl          String?
+  primaryColor     String     @default("#6366f1")
+  stripeCustomerId String?
+  planStatus       PlanStatus @default(TRIAL)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  tenants Tenant[]
+  users   User[]   @relation("AgencyUsers")
+}
+
+// ============================================================
+// TENANT — cliente final gerenciado por uma agência
+// ============================================================
+model Tenant {
+  id             String   @id @default(cuid())
+  agencyId       String
+  name           String
+  email            String   @default("")
+  whatsappPhone    String   @default("")
+  digestTime       String   @default("18:00")
+  digestFrequency  String   @default("daily")
+  digestDayOfWeek  Int      @default(1)
+  digestDayOfMonth Int      @default(1)
+  timezone         String   @default("America/Sao_Paulo")
+  isActive             Boolean  @default(true)
+  taskadeWebhookUrl    String?
+  createdAt            DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  agency        Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  users         User[]        @relation("TenantUsers")
+  groups        WaGroup[]
+  messages      Message[]
+  digests       Digest[]
+  eventClients  EventClient[]
+
+  @@index([agencyId, isActive])
+}
+
+// ============================================================
+// CLIENTE DO EVENTO (ex: casal) — vinculado a um ou mais grupos
+// ============================================================
+model EventClient {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  phone       String   @default("")
+  email       String
+  description      String   @default("")
+  digestTime       String   @default("08:00")
+  digestFrequency  String   @default("daily")
+  digestDayOfWeek  Int      @default(1)
+  digestDayOfMonth Int      @default(1)
+  timezone         String   @default("America/Sao_Paulo")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  groups WaGroup[]
+
+  @@index([tenantId])
+}
+
+// ============================================================
+// GRUPO DO WHATSAPP monitorado para um tenant
+// ============================================================
+model WaGroup {
+  id            String  @id @default(cuid())
+  tenantId      String
+  waGroupId     String
+  name          String
+  isActive      Boolean @default(true)
+  priority      Int     @default(0)
+  eventClientId String?
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventClient EventClient? @relation(fields: [eventClientId], references: [id], onDelete: SetNull)
+  messages    Message[]
+
+  @@unique([tenantId, waGroupId])
+  @@index([tenantId, isActive])
+  @@index([eventClientId])
+}
+
+// ============================================================
+// MENSAGEM capturada de um grupo via webhook da Evolution API
+// ============================================================
+model Message {
+  id          String   @id @default(cuid())
+  tenantId    String
+  groupId     String
+  waMessageId String   @unique
+  author      String
+  authorPhone String
+  content     String
+  timestamp   DateTime
+  createdAt   DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  group  WaGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, groupId, timestamp])
+  @@index([tenantId, timestamp])
+}
+
+// ============================================================
+// DIGEST gerado pela IA e enviado ao tenant
+// ============================================================
+model Digest {
+  id        String    @id @default(cuid())
+  tenantId  String
+  date      DateTime  @db.Date
+  contentMd String
+  sentAt    DateTime?
+  r2Key     String?
+  createdAt DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date])
+  @@index([tenantId, date])
+}
+
+// ============================================================
+// USUÁRIO — cobre os três níveis de acesso
+// ============================================================
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  phone        String   @default("")
+  passwordHash String?
+  role         Role
+  agencyId     String?
+  tenantId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agency      Agency?              @relation("AgencyUsers", fields: [agencyId], references: [id], onDelete: SetNull)
+  tenant      Tenant?              @relation("TenantUsers", fields: [tenantId], references: [id], onDelete: SetNull)
+  resetTokens PasswordResetToken[]
+
+  @@index([agencyId])
+  @@index([tenantId])
+}
+
+// ============================================================
+// TOKEN DE RESET DE SENHA — expira em 1h, uso único
+// ============================================================
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+enum Role {
+  SUPER_ADMIN
+  AGENCY_ADMIN
+  TENANT_USER
+}
+
+enum PlanStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
