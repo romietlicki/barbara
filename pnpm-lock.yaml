@@ -105,6 +105,9 @@ importers:
       '@repo/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@repo/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@repo/whatsapp':
         specifier: workspace:*
         version: link:../../packages/whatsapp
