@@ -41,14 +41,15 @@ WORKDIR /repo
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 fastify
 
-COPY --from=builder --chown=fastify:nodejs /repo/node_modules    ./node_modules
-COPY --from=builder --chown=fastify:nodejs /repo/apps/api/src    ./apps/api/src
+COPY --from=builder --chown=fastify:nodejs /repo/node_modules         ./node_modules
+COPY --from=builder --chown=fastify:nodejs /repo/apps/api/src         ./apps/api/src
 COPY --from=builder --chown=fastify:nodejs /repo/apps/api/package.json ./apps/api/package.json
 COPY --from=builder --chown=fastify:nodejs /repo/apps/api/tsconfig.json ./apps/api/tsconfig.json
-COPY --from=builder --chown=fastify:nodejs /repo/packages        ./packages
-COPY --from=builder --chown=fastify:nodejs /repo/package.json    ./package.json
-COPY --from=builder --chown=fastify:nodejs /repo/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder --chown=fastify:nodejs /repo/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder --chown=fastify:nodejs /repo/packages             ./packages
+COPY --from=builder --chown=fastify:nodejs /repo/package.json         ./package.json
+COPY --from=builder --chown=fastify:nodejs /repo/pnpm-workspace.yaml  ./pnpm-workspace.yaml
 
 USER fastify
 EXPOSE 3001
-CMD ["node_modules/.bin/tsx", "apps/api/src/index.ts"]
+CMD ["apps/api/node_modules/.bin/tsx", "apps/api/src/index.ts"]
