@@ -52,4 +52,4 @@ COPY --from=builder --chown=fastify:nodejs /repo/pnpm-workspace.yaml  ./pnpm-wor
 
 USER fastify
 EXPOSE 3001
-CMD ["apps/api/node_modules/.bin/tsx", "apps/api/src/index.ts"]
+CMD ["sh", "-c", "packages/db/node_modules/.bin/prisma migrate deploy --schema=packages/db/prisma/schema.prisma && apps/api/node_modules/.bin/tsx apps/api/src/index.ts"]
