@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { QrConnect } from '@/components/qr-connect'
-import { createTenantAction } from '@/app/(dashboard)/agency/clientes/actions'
+import { createTenantAction } from '@/app/(dashboard)/dashboard/agency/clientes/actions'
 
 type Step = 1 | 2 | 3
 
