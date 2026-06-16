@@ -97,9 +97,10 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(200).send({ ok: true })
       }
 
-      // connection.update com state=open → atualiza número e sincroniza nomes dos grupos
+      // connection.update → atualiza estado de conexão no banco
       if (payload.event === 'connection.update') {
         const connData = payload.data as unknown as { state?: string }
+
         if (connData.state === 'open') {
           if (payload.sender) {
             const phone = payload.sender.split('@')[0]
@@ -128,7 +129,14 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
               app.log.warn({ err }, 'Falha ao sincronizar nomes de grupos')
             }
           })()
+        } else if (connData.state === 'close') {
+          await prisma.tenant.updateMany({
+            where: { id: payload.instance },
+            data: { whatsappPhone: null },
+          })
+          app.log.info({ tenantId: payload.instance }, 'WhatsApp desconectado — telefone removido')
         }
+
         return reply.status(200).send({ ok: true })
       }
 

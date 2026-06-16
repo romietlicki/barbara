@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireRole } from '@/lib/auth-context'
 import { prisma } from '@repo/db'
+import { EvolutionApiClient } from '@repo/whatsapp'
 import { AiChat } from './_components/ai-chat'
 
 export default async function TenantDashboardPage() {
@@ -29,6 +30,17 @@ export default async function TenantDashboardPage() {
     }),
   ])
 
+  let waConnected = false
+  if (tenant?.whatsappPhone) {
+    try {
+      const client = new EvolutionApiClient()
+      const status = await client.getStatus(tenantId)
+      waConnected = status.state === 'open'
+    } catch {
+      waConnected = false
+    }
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
@@ -50,10 +62,10 @@ export default async function TenantDashboardPage() {
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <p className="text-sm text-gray-500">WhatsApp</p>
-          {tenant?.whatsappPhone ? (
+          {waConnected ? (
             <>
               <p className="text-sm font-semibold text-green-600 mt-1">Conectado</p>
-              <p className="text-xs text-gray-400 mt-0.5 font-mono">{tenant.whatsappPhone}</p>
+              <p className="text-xs text-gray-400 mt-0.5 font-mono">{tenant?.whatsappPhone}</p>
             </>
           ) : (
             <>
