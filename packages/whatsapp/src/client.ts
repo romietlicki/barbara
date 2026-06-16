@@ -72,21 +72,29 @@ export class EvolutionApiClient {
   }
 
   // Retorna QR code para o usuário escanear e conectar o WhatsApp.
+  // v1.8.x pode retornar { base64, code } na raiz ou aninhado em { qrcode: { base64, code } }
   async getQrCode(instanceName: string): Promise<QrCodeResponse> {
-    return this.request<QrCodeResponse>('GET', `/instance/connect/${instanceName}`)
+    type RawQr = { base64?: string; code?: string; qrcode?: { base64?: string; code?: string } }
+    const data = await this.request<RawQr>('GET', `/instance/connect/${instanceName}`)
+    const base64 = data.base64 ?? data.qrcode?.base64 ?? ''
+    const code = data.code ?? data.qrcode?.code ?? ''
+    if (!base64) throw new Error('QR code não disponível na resposta da Evolution API')
+    return { base64, code }
   }
 
   // Verifica se a instância está conectada.
-  // Evolution API v1 retorna { instance: { instanceName, status } } (objeto único, campo "status").
+  // Evolution API v1.8.x retorna array: [{ instance: { instanceName, state } }]
   async getStatus(instanceName: string): Promise<InstanceStatus> {
-    type V1Response = { instance: { instanceName: string; status: string } }
-    const data = await this.request<V1Response>(
+    type InstanceEntry = { instance: { instanceName: string; state?: string; status?: string } }
+    const data = await this.request<InstanceEntry | InstanceEntry[]>(
       'GET',
       `/instance/fetchInstances?instanceName=${encodeURIComponent(instanceName)}`,
     )
-    if (!data?.instance) throw new Error(`Instância ${instanceName} não encontrada`)
-    const raw = data.instance.status as InstanceStatus['state']
-    return { instanceName: data.instance.instanceName, state: raw }
+    const entry = Array.isArray(data) ? data[0] : data
+    const instance = entry?.instance
+    if (!instance) throw new Error(`Instância ${instanceName} não encontrada`)
+    const raw = (instance.state ?? instance.status ?? 'close') as InstanceStatus['state']
+    return { instanceName: instance.instanceName, state: raw }
   }
 
   // Envia mensagem de texto para um número ou grupo.
