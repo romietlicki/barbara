@@ -16,10 +16,8 @@ if (typeof process.loadEnvFile === 'function') {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
   transpilePackages: ['@repo/db', '@repo/whatsapp'],
   experimental: {
-    outputFileTracingRoot: path.join(__dirname, '../../'),
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
   },
   images: {
