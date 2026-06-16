@@ -41,8 +41,16 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Inicia workers e schedulers após a aplicação estar pronta
   app.addHook('onReady', async () => {
-    startWorkers()
-    await initAllSchedulers()
+    try {
+      startWorkers()
+    } catch (err) {
+      app.log.error({ err }, 'Falha ao iniciar workers — servidor continua')
+    }
+    try {
+      await initAllSchedulers()
+    } catch (err) {
+      app.log.error({ err }, 'Falha ao iniciar schedulers — servidor continua')
+    }
   })
 
   return app
