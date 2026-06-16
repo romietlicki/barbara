@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs'
 import type { Role } from '@repo/db'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
