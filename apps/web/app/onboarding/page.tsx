@@ -143,6 +143,11 @@ export default function OnboardingPage() {
               </div>
 
               <div className="space-y-1.5">
+                <Label htmlFor="email">Email do cliente *</Label>
+                <Input id="email" name="email" type="email" placeholder="contato@empresa.com" required />
+              </div>
+
+              <div className="space-y-1.5">
                 <Label htmlFor="whatsappPhone">WhatsApp (apenas dígitos) *</Label>
                 <Input
                   id="whatsappPhone"
