@@ -6,9 +6,11 @@ import type { Agency } from '@repo/db'
 export async function getAgencyBySlug(slug: string): Promise<Agency | null> {
   if (!slug || slug === 'default') return null
 
-  return prisma.agency.findUnique({
-    where: { slug },
-  })
+  try {
+    return await prisma.agency.findUnique({ where: { slug } })
+  } catch {
+    return null
+  }
 }
 
 // Retorna as CSS variables de branding para injetar no <body>
