@@ -14,7 +14,7 @@ if (typeof process.loadEnvFile === 'function') {
 // depois que DATABASE_URL está no process.env
 const { buildApp } = await import('./app.js')
 
-const PORT = parseInt(process.env['API_PORT'] ?? '3001', 10)
+const PORT = parseInt(process.env['PORT'] ?? process.env['API_PORT'] ?? '3001', 10)
 const HOST = process.env['API_HOST'] ?? '0.0.0.0'
 
 async function start(): Promise<void> {
