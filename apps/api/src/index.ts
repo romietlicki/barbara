@@ -10,19 +10,26 @@ if (typeof process.loadEnvFile === 'function') {
   } catch { /* .env ausente — variáveis devem ser injetadas por outro meio */ }
 }
 
-// Import dinâmico garante que @repo/db (PrismaClient) só é instanciado
-// depois que DATABASE_URL está no process.env
-const { buildApp } = await import('./app.js')
-
-const PORT = parseInt(process.env['PORT'] ?? process.env['API_PORT'] ?? '3001', 10)
-const HOST = process.env['API_HOST'] ?? '0.0.0.0'
-
-console.log('[startup] env PORT=%s API_PORT=%s REDIS_URL=%s DATABASE_URL=%s',
+console.log('[startup] iniciando — PORT=%s REDIS_URL=%s DATABASE_URL=%s',
   process.env['PORT'] ?? '(não definido)',
-  process.env['API_PORT'] ?? '(não definido)',
   process.env['REDIS_URL'] ? process.env['REDIS_URL'].replace(/:([^:@]+)@/, ':***@') : '(não definido)',
   process.env['DATABASE_URL'] ? '(definido)' : '(não definido)',
 )
+
+// Import dinâmico garante que @repo/db (PrismaClient) só é instanciado
+// depois que DATABASE_URL está no process.env
+let buildApp: () => Promise<import('fastify').FastifyInstance>
+try {
+  const mod = await import('./app.js')
+  buildApp = mod.buildApp
+  console.log('[startup] app.js importado com sucesso')
+} catch (err) {
+  console.error('[startup] ERRO ao importar app.js:', err)
+  process.exit(1)
+}
+
+const PORT = parseInt(process.env['PORT'] ?? process.env['API_PORT'] ?? '3001', 10)
+const HOST = process.env['API_HOST'] ?? '0.0.0.0'
 
 async function start(): Promise<void> {
   const app = await buildApp()
