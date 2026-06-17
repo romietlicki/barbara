@@ -19,6 +19,9 @@ function getTransporter(): nodemailer.Transporter {
       user: process.env['SMTP_USER'] ?? 'resend',
       pass: process.env['SMTP_PASS'] ?? '',
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   })
 
   return _transporter
