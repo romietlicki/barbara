@@ -85,6 +85,12 @@ export function startWorkers(): void {
   generateWorker.on('failed', (job, err) => {
     console.error(`[worker:${generateWorker.name}] job ${job?.id} falhou:`, err.message)
   })
+  generateEventClientWorker.on('failed', (job, err) => {
+    console.error(`[worker:generate-event-client-digest] job ${job?.id} falhou:`, err.message)
+  })
+  sendWorker.on('failed', (job, err) => {
+    console.error(`[worker:send-digest] job ${job?.id} tentativa=${job?.attemptsMade} falhou:`, err.message)
+  })
 
   console.log('[workers] 3 worker(s) inicializado(s)')
 }

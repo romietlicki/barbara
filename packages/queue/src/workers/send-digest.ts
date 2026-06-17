@@ -10,6 +10,7 @@ export function createSendDigestWorker(): Worker<SendDigestJobData> {
     'send-digest',
     async (job) => {
       const { digestId, tenantId } = job.data
+      console.log(`[send-digest] processando job=${job.id} digestId=${digestId}`)
 
       const digest = await prisma.digest.findUniqueOrThrow({
         where: { id: digestId },
