@@ -2,6 +2,7 @@ import { requireRole } from '@/lib/auth-context'
 import { prisma } from '@repo/db'
 import { notFound } from 'next/navigation'
 import { DigestSettingsForm } from './_components/digest-settings-form'
+import { DigestEmailForm } from './_components/digest-email-form'
 import { TaskadeSettingsForm } from './_components/taskade-settings-form'
 
 export default async function ConfiguracoesPage() {
@@ -28,8 +29,10 @@ export default async function ConfiguracoesPage() {
         <h2 className="font-semibold text-gray-900 mb-1">Digest de gestão</h2>
         <p className="text-sm text-gray-500 mb-4">
           Resumo operacional da sua empresa — grupos não vinculados a casais específicos.
-          Enviado para <strong>{tenant.email || '—'}</strong>.
         </p>
+        <div className="mb-4 pb-4 border-b border-gray-100">
+          <DigestEmailForm currentEmail={tenant.email} />
+        </div>
         <DigestSettingsForm
           digestTime={tenant.digestTime}
           digestFrequency={tenant.digestFrequency}

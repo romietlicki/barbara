@@ -5,6 +5,26 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@repo/db'
 import { requireRole, getInternalApiHeaders } from '@/lib/auth-context'
 
+const DigestEmailSchema = z.object({
+  email: z.string().email('Email inválido'),
+})
+
+export async function updateTenantDigestEmailAction(formData: FormData) {
+  const session = await requireRole(['TENANT_USER'])
+  const { tenantId } = session.user
+  if (!tenantId) throw new Error('Conta sem cliente associado')
+
+  const parsed = DigestEmailSchema.safeParse({ email: formData.get('email') })
+  if (!parsed.success) throw new Error(parsed.error.errors[0]?.message ?? 'Dados inválidos')
+
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { email: parsed.data.email },
+  })
+
+  revalidatePath('/dashboard/tenant/configuracoes')
+}
+
 const TaskadeSettingsSchema = z.object({
   taskadeWebhookUrl: z.string().trim().url('URL inválida').or(z.literal('')),
 })
