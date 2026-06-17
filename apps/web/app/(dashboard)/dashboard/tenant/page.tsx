@@ -3,6 +3,7 @@ import { requireRole } from '@/lib/auth-context'
 import { prisma } from '@repo/db'
 import { EvolutionApiClient } from '@repo/whatsapp'
 import { AiChat } from './_components/ai-chat'
+import { ResendDigestButton } from './_components/resend-digest-button'
 
 export default async function TenantDashboardPage() {
   const session = await requireRole(['TENANT_USER'])
@@ -117,14 +118,16 @@ export default async function TenantDashboardPage() {
                       : 'Não enviado'}
                   </p>
                 </div>
-                {/* TODO: Semana 4 — botão de visualizar + reenviar */}
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  digest.sentAt
-                    ? 'bg-green-50 text-green-700'
-                    : 'bg-yellow-50 text-yellow-700'
-                }`}>
-                  {digest.sentAt ? 'Enviado' : 'Pendente'}
-                </span>
+                <div className="flex items-center gap-2">
+                  {!digest.sentAt && <ResendDigestButton digestId={digest.id} />}
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    digest.sentAt
+                      ? 'bg-green-50 text-green-700'
+                      : 'bg-yellow-50 text-yellow-700'
+                  }`}>
+                    {digest.sentAt ? 'Enviado' : 'Pendente'}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>
