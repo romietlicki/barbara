@@ -10,6 +10,7 @@ COPY apps/api/package.json          ./apps/api/
 COPY packages/ai/package.json       ./packages/ai/
 COPY packages/config/package.json   ./packages/config/
 COPY packages/db/package.json       ./packages/db/
+COPY packages/db/prisma             ./packages/db/prisma/
 COPY packages/email/package.json    ./packages/email/
 COPY packages/queue/package.json    ./packages/queue/
 COPY packages/taskade/package.json  ./packages/taskade/
