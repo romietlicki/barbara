@@ -60,10 +60,13 @@ export async function createTenantAction(formData: FormData) {
   // Cria ou atualiza conta de acesso — usuário redefine senha via "Esqueci a Senha"
   const existingUser = await prisma.user.findUnique({ where: { email } })
   if (existingUser) {
-    // Usuário já existe — garante que tenantId está vinculado
+    if (existingUser.role !== 'TENANT_USER') {
+      throw new Error(`O email ${email} já pertence a uma conta de ${existingUser.role === 'AGENCY_ADMIN' ? 'admin de agência' : 'super admin'}. Use um email diferente para este cliente.`)
+    }
+    // Usuário já existe como TENANT_USER — garante que tenantId está vinculado
     await prisma.user.update({
       where: { email },
-      data: { tenantId: tenant.id, role: 'TENANT_USER', agencyId },
+      data: { tenantId: tenant.id, agencyId },
     })
   } else {
     const tempPass = whatsappPhone.length >= 8 ? whatsappPhone.slice(-8) : 'Barbara@1234'
