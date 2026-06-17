@@ -12,10 +12,10 @@ export function parseActionsFromDigest(contentMd: string): DigestAction[] {
   let match: RegExpExecArray | null
 
   while ((match = ACTION_REGEX.exec(contentMd)) !== null) {
-    actions.push({
-      criticality: match[1] as Criticality,
-      content: match[2].trim(),
-    })
+    const criticality = match[1]
+    const content = match[2]
+    if (!criticality || !content) continue
+    actions.push({ criticality: criticality as Criticality, content: content.trim() })
   }
 
   return actions
