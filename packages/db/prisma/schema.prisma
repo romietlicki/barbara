@@ -41,6 +41,9 @@ model Tenant {
   timezone         String   @default("America/Sao_Paulo")
   isActive             Boolean  @default(true)
   taskadeWebhookUrl    String?
+  trelloApiKey         String?
+  trelloToken          String?
+  trelloListId         String?
   createdAt            DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

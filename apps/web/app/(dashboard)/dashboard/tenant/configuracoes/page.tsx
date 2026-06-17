@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { DigestSettingsForm } from './_components/digest-settings-form'
 import { DigestEmailForm } from './_components/digest-email-form'
 import { TaskadeSettingsForm } from './_components/taskade-settings-form'
+import { TrelloSettingsForm } from './_components/trello-settings-form'
 
 export default async function ConfiguracoesPage() {
   const session = await requireRole(['TENANT_USER'])
@@ -13,7 +14,7 @@ export default async function ConfiguracoesPage() {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { name: true, email: true, digestTime: true, digestFrequency: true, digestDayOfWeek: true, digestDayOfMonth: true, timezone: true, taskadeWebhookUrl: true },
+    select: { name: true, email: true, digestTime: true, digestFrequency: true, digestDayOfWeek: true, digestDayOfMonth: true, timezone: true, taskadeWebhookUrl: true, trelloApiKey: true, trelloToken: true, trelloListId: true },
   })
 
   if (!tenant) notFound()
@@ -58,6 +59,19 @@ export default async function ConfiguracoesPage() {
           seu projeto do Taskade, com o nível de criticidade no título.
         </p>
         <TaskadeSettingsForm taskadeWebhookUrl={tenant.taskadeWebhookUrl} />
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl p-6 mt-4">
+        <h2 className="font-semibold text-gray-900 mb-1">Integração Trello</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Quando configurado, cada ação gerada no digest será criada como card na lista do Trello
+          escolhida, com a criticidade no título.
+        </p>
+        <TrelloSettingsForm
+          trelloApiKey={tenant.trelloApiKey}
+          trelloToken={tenant.trelloToken}
+          trelloListId={tenant.trelloListId}
+        />
       </div>
     </div>
   )

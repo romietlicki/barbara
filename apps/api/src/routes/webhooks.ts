@@ -102,37 +102,44 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         const connData = payload.data as unknown as { state?: string }
 
         if (connData.state === 'open') {
-          if (payload.sender) {
-            const phone = payload.sender.split('@')[0]
-            if (phone) {
-              await prisma.tenant.updateMany({
-                where: { id: payload.instance },
-                data: { whatsappPhone: phone },
-              })
-              app.log.info({ tenantId: payload.instance, phone }, 'WhatsApp conectado — número atualizado')
+          const phone = payload.sender ? payload.sender.split('@')[0] : null
+          if (phone) {
+            const tenant = await prisma.tenant.findUnique({
+              where: { id: payload.instance },
+              select: { whatsappPhone: true },
+            })
+
+            const alreadyConnected = tenant?.whatsappPhone === phone
+
+            await prisma.tenant.updateMany({
+              where: { id: payload.instance },
+              data: { whatsappPhone: phone },
+            })
+            app.log.info({ tenantId: payload.instance, phone }, 'WhatsApp conectado — número atualizado')
+
+            // Sincroniza nomes dos grupos apenas na primeira conexão do número
+            if (!alreadyConnected) {
+              void (async () => {
+                try {
+                  const client = new EvolutionApiClient()
+                  const groups = await client.fetchAllGroups(payload.instance)
+                  for (const g of groups) {
+                    await prisma.waGroup.updateMany({
+                      where: { waGroupId: g.id, tenant: { id: payload.instance } },
+                      data: { name: g.subject },
+                    })
+                  }
+                  app.log.info({ count: groups.length, tenantId: payload.instance }, 'Nomes de grupos sincronizados')
+                } catch (err) {
+                  app.log.warn({ err }, 'Falha ao sincronizar nomes de grupos')
+                }
+              })()
             }
           }
-
-          // Sincroniza nomes dos grupos via fetchAllGroups (fire-and-forget)
-          void (async () => {
-            try {
-              const client = new EvolutionApiClient()
-              const groups = await client.fetchAllGroups(payload.instance)
-              for (const g of groups) {
-                await prisma.waGroup.updateMany({
-                  where: { waGroupId: g.id, tenant: { id: payload.instance } },
-                  data: { name: g.subject },
-                })
-              }
-              app.log.info({ count: groups.length, tenantId: payload.instance }, 'Nomes de grupos sincronizados')
-            } catch (err) {
-              app.log.warn({ err }, 'Falha ao sincronizar nomes de grupos')
-            }
-          })()
         } else if (connData.state === 'close') {
           await prisma.tenant.updateMany({
             where: { id: payload.instance },
-            data: { whatsappPhone: null },
+            data: { whatsappPhone: '' },
           })
           app.log.info({ tenantId: payload.instance }, 'WhatsApp desconectado — telefone removido')
         }

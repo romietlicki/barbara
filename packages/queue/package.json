@@ -16,6 +16,7 @@
     "@repo/db": "workspace:*",
     "@repo/email": "workspace:*",
     "@repo/taskade": "workspace:*",
+    "@repo/trello": "workspace:*",
     "@repo/whatsapp": "workspace:*",
     "bullmq": "^5.13.2",
     "luxon": "^3.5.0"

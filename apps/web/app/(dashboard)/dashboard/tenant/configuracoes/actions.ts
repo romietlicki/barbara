@@ -25,6 +25,38 @@ export async function updateTenantDigestEmailAction(formData: FormData) {
   revalidatePath('/dashboard/tenant/configuracoes')
 }
 
+const TrelloSettingsSchema = z.object({
+  trelloApiKey: z.string().trim(),
+  trelloToken: z.string().trim(),
+  trelloListId: z.string().trim(),
+})
+
+export async function updateTrelloSettingsAction(formData: FormData) {
+  const session = await requireRole(['TENANT_USER'])
+  const { tenantId } = session.user
+  if (!tenantId) throw new Error('Conta sem cliente associado')
+
+  const parsed = TrelloSettingsSchema.safeParse({
+    trelloApiKey: formData.get('trelloApiKey'),
+    trelloToken: formData.get('trelloToken'),
+    trelloListId: formData.get('trelloListId'),
+  })
+  if (!parsed.success) throw new Error(parsed.error.errors[0]?.message ?? 'Dados inválidos')
+
+  const { trelloApiKey, trelloToken, trelloListId } = parsed.data
+
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: {
+      trelloApiKey: trelloApiKey || null,
+      trelloToken: trelloToken || null,
+      trelloListId: trelloListId || null,
+    },
+  })
+
+  revalidatePath('/dashboard/tenant/configuracoes')
+}
+
 const TaskadeSettingsSchema = z.object({
   taskadeWebhookUrl: z.string().trim().url('URL inválida').or(z.literal('')),
 })
