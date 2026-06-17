@@ -19,13 +19,14 @@ function getResend(): Resend | null {
 export async function sendEmail(payload: EmailPayload): Promise<void> {
   const client = getResend()
   if (!client) {
-    console.warn(`[email] RESEND_API_KEY não configurado — email NÃO enviado para ${payload.to}`)
-    return
+    throw new Error(`[email] RESEND_API_KEY não configurado — impossível enviar para ${payload.to}`)
   }
 
   const from = process.env['EMAIL_FROM'] ?? 'onboarding@resend.dev'
 
-  const { error } = await client.emails.send({
+  console.log(`[email] enviando via Resend from=${from} to=${payload.to}`)
+
+  const { data, error } = await client.emails.send({
     from,
     to: payload.to,
     subject: payload.subject,
@@ -33,8 +34,10 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
   })
 
   if (error) {
-    throw new Error(`Resend: ${error.message}`)
+    throw new Error(`Resend erro: ${error.message}`)
   }
+
+  console.log(`[email] aceito pelo Resend id=${data?.id} to=${payload.to}`)
 }
 
 export { digestFailureHtml, waDisconnectedHtml, digestEmailHtml, passwordResetHtml } from './templates'
