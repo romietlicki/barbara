@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
 export interface EmailPayload {
   to: string
@@ -6,41 +6,35 @@ export interface EmailPayload {
   html: string
 }
 
-let _transporter: nodemailer.Transporter | undefined
+let _resend: Resend | null = null
 
-function getTransporter(): nodemailer.Transporter {
-  if (_transporter) return _transporter
-
-  _transporter = nodemailer.createTransport({
-    host: process.env['SMTP_HOST'] ?? 'smtp.resend.com',
-    port: Number(process.env['SMTP_PORT'] ?? 465),
-    secure: Number(process.env['SMTP_PORT'] ?? 465) === 465,
-    auth: {
-      user: process.env['SMTP_USER'] ?? 'resend',
-      pass: process.env['SMTP_PASS'] ?? '',
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  })
-
-  return _transporter
+function getResend(): Resend | null {
+  if (_resend) return _resend
+  const apiKey = process.env['RESEND_API_KEY']
+  if (!apiKey) return null
+  _resend = new Resend(apiKey)
+  return _resend
 }
 
 export async function sendEmail(payload: EmailPayload): Promise<void> {
-  const from = process.env['EMAIL_FROM'] ?? 'noreply@barbara.app'
-
-  if (!process.env['SMTP_PASS']) {
-    console.warn(`[email] SMTP_PASS não configurado — email NÃO enviado para ${payload.to}`)
+  const client = getResend()
+  if (!client) {
+    console.warn(`[email] RESEND_API_KEY não configurado — email NÃO enviado para ${payload.to}`)
     return
   }
 
-  await getTransporter().sendMail({
+  const from = process.env['EMAIL_FROM'] ?? 'onboarding@resend.dev'
+
+  const { error } = await client.emails.send({
     from,
     to: payload.to,
     subject: payload.subject,
     html: payload.html,
   })
+
+  if (error) {
+    throw new Error(`Resend: ${error.message}`)
+  }
 }
 
 export { digestFailureHtml, waDisconnectedHtml, digestEmailHtml, passwordResetHtml } from './templates'
