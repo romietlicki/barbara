@@ -67,7 +67,12 @@ export function TrelloSettingsForm({ trelloApiKey, trelloToken, trelloListId }: 
           defaultValue={trelloListId ?? ''}
         />
         <p className="text-xs text-gray-500">
-          Abra o board no Trello, adicione <span className="font-medium">.json</span> ao final da URL e localize o campo <span className="font-medium">"id"</span> dentro de <span className="font-medium">"lists"</span> na lista desejada.
+          Para obter o ID correto, acesse no navegador (substituindo os valores):{' '}
+          <span className="font-mono break-all select-all">
+            https://api.trello.com/1/boards/ID_DO_BOARD/lists?key=SUA_KEY&token=SEU_TOKEN
+          </span>
+          {' '}— o <span className="font-medium">ID_DO_BOARD</span> é o código curto na URL do board (ex: <span className="font-mono">trello.com/b/<strong>AbCdEfGh</strong>/nome</span>).
+          No JSON retornado, cada item tem <span className="font-medium">"id"</span> e <span className="font-medium">"name"</span> — copie o <span className="font-medium">"id"</span> da lista desejada.
         </p>
       </div>
 
