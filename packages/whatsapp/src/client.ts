@@ -38,18 +38,23 @@ export class EvolutionApiClient {
     return res.json() as Promise<T>
   }
 
-  // Cria uma nova instância WA. instanceName deve ser o tenantId para facilitar lookup.
+  // Cria ou reconfigura uma instância WA.
   // Compatível com Evolution API v1.8.x: criação e webhook são chamadas separadas.
+  // Webhook e settings são sempre atualizados mesmo que a instância já exista.
   async createInstance(
     instanceName: string,
     webhookUrl: string,
     webhookSecret: string,
   ): Promise<void> {
-    await this.request<unknown>('POST', '/instance/create', {
-      instanceName,
-      integration: 'WHATSAPP-BAILEYS',
-      qrcode: true,
-    })
+    try {
+      await this.request<unknown>('POST', '/instance/create', {
+        instanceName,
+        integration: 'WHATSAPP-BAILEYS',
+        qrcode: true,
+      })
+    } catch {
+      // instância já existe — continua para atualizar webhook e settings
+    }
 
     await this.request<unknown>('POST', `/webhook/set/${instanceName}`, {
       url: webhookUrl,
