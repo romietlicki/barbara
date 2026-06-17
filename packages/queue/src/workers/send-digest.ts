@@ -12,10 +12,12 @@ export function createSendDigestWorker(): Worker<SendDigestJobData> {
       const { digestId, tenantId } = job.data
       console.log(`[send-digest] processando job=${job.id} digestId=${digestId}`)
 
+      console.log(`[send-digest] buscando digest no banco...`)
       const digest = await prisma.digest.findUniqueOrThrow({
         where: { id: digestId },
         include: { tenant: true },
       })
+      console.log(`[send-digest] digest encontrado sentAt=${digest.sentAt} tenantEmail=${digest.tenant.email}`)
 
       if (digest.sentAt !== null) {
         console.log(`[send-digest] digestId=${digestId} já enviado em ${digest.sentAt.toISOString()}, pulando`)
@@ -39,6 +41,7 @@ export function createSendDigestWorker(): Worker<SendDigestJobData> {
 
       const dateLabel = DateTime.fromJSDate(digest.date).toFormat('yyyy-MM-dd')
 
+      console.log(`[send-digest] enviando email para ${tenant.email}...`)
       await sendEmail({
         to: tenant.email,
         subject: `Resumo do dia ${dateLabel} — ${tenant.name}`,
