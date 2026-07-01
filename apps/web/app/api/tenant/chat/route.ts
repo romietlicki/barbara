@@ -49,14 +49,14 @@ export async function POST(request: Request): Promise<Response> {
     }),
 
     // Mensagens brutas recentes — filtra por grupo se especificado
+    // orderBy desc garante que as mais recentes entram no limite de 500
     prisma.message.findMany({
       where: {
         tenantId,
         timestamp: { gte: recentSince },
-        group: { isActive: true },
         ...(groupId ? { groupId } : {}),
       },
-      orderBy: { timestamp: 'asc' },
+      orderBy: { timestamp: 'desc' },
       take: RECENT_MESSAGES_LIMIT,
       select: {
         content: true,
@@ -108,7 +108,7 @@ export async function POST(request: Request): Promise<Response> {
   // Mensagens brutas recentes
   const recentCtx = recentMessages.length > 0
     ? `MENSAGENS RECENTES (últimos ${RECENT_MESSAGES_DAYS} dias — ${recentMessages.length} mensagens):\n${
-        recentMessages
+        [...recentMessages].reverse()
           .map((m) => {
             const date = m.timestamp.toLocaleDateString('pt-BR')
             const time = m.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
