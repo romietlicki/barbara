@@ -48,7 +48,8 @@ export async function POST(request: Request): Promise<Response> {
       },
     }),
 
-    // Mensagens brutas recentes — filtra por grupo se especificado
+    // Mensagens brutas recentes — sem filtro de isActive: mensagens no banco já foram
+    // validadas no momento do armazenamento; grupos podem ser desativados depois
     // orderBy desc garante que as mais recentes entram no limite de 500
     prisma.message.findMany({
       where: {
