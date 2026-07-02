@@ -21,3 +21,7 @@ export interface GenerateEventClientDigestJobData {
   tenantId: string
   eventClientId: string
 }
+
+export interface TrelloExportJobData {
+  tenantId: string
+}

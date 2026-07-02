@@ -4,7 +4,6 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { prisma } from '@repo/db'
 import { buildDigestPrompt, callClaude, parseDigestOutput } from '@repo/ai'
 import { parseActionsFromDigest, createTaskadeTask } from '@repo/taskade'
-import { createTrelloCard } from '@repo/trello'
 import { getConnectionOptions } from '../connection'
 import { sendDigestQueue } from '../queues'
 import type { GenerateDigestJobData } from '../jobs'
@@ -118,19 +117,6 @@ export function createGenerateDigestWorker(): Worker<GenerateDigestJobData> {
         }
       }
 
-      if (tenant.trelloApiKey && tenant.trelloToken && tenant.trelloListId) {
-        const actions = parseActionsFromDigest(content)
-        if (actions.length > 0) {
-          console.log(`[generate-digest] exportando ${actions.length} ação(ões) para Trello`)
-          await Promise.allSettled(
-            actions.map((a) =>
-              createTrelloCard(tenant.trelloApiKey!, tenant.trelloToken!, tenant.trelloListId!, a.content, a.criticality).catch(
-                (err: unknown) => console.error(`[generate-digest] falha ao criar card Trello: ${err}`),
-              ),
-            ),
-          )
-        }
-      }
     },
     { connection: getConnectionOptions(), concurrency: 2 },
   )

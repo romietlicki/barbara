@@ -5,6 +5,7 @@ import type {
   GenerateDigestJobData,
   GenerateEventClientDigestJobData,
   SendDigestJobData,
+  TrelloExportJobData,
 } from './jobs'
 
 function makeQueue<D, R, N extends string>(name: string, opts: ConstructorParameters<typeof Queue>[1]) {
@@ -63,6 +64,19 @@ export const sendDigestQueue = makeQueue<SendDigestJobData, void, 'send-digest'>
       removeOnFail: 500,
       attempts: 5,
       backoff: { type: 'exponential', delay: 3000 },
+    },
+  },
+)
+
+export const trelloExportQueue = makeQueue<TrelloExportJobData, void, string>(
+  'trello-export',
+  {
+    connection: getConnectionOptions(),
+    defaultJobOptions: {
+      removeOnComplete: 100,
+      removeOnFail: 500,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 },
     },
   },
 )

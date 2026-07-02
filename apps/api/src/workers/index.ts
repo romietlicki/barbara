@@ -3,6 +3,7 @@ import {
   createGenerateDigestWorker,
   createGenerateEventClientDigestWorker,
   createSendDigestWorker,
+  createTrelloExportWorker,
 } from '@repo/queue'
 import { prisma } from '@repo/db'
 import { sendEmail, digestFailureHtml } from '@repo/email'
@@ -13,8 +14,9 @@ export function startWorkers(): void {
   const generateWorker = createGenerateDigestWorker()
   const generateEventClientWorker = createGenerateEventClientDigestWorker()
   const sendWorker = createSendDigestWorker()
+  const trelloExportWorker = createTrelloExportWorker()
 
-  const workers = [ingestWorker, generateWorker, generateEventClientWorker, sendWorker]
+  const workers = [ingestWorker, generateWorker, generateEventClientWorker, sendWorker, trelloExportWorker]
 
   for (const worker of workers) {
     worker.on('error', (err) => {
@@ -91,6 +93,9 @@ export function startWorkers(): void {
   sendWorker.on('failed', (job, err) => {
     console.error(`[worker:send-digest] job ${job?.id} tentativa=${job?.attemptsMade} falhou:`, err.message)
   })
+  trelloExportWorker.on('failed', (job, err) => {
+    console.error(`[worker:trello-export] job ${job?.id} falhou:`, err.message)
+  })
 
-  console.log('[workers] 3 worker(s) inicializado(s)')
+  console.log('[workers] 5 worker(s) inicializado(s)')
 }

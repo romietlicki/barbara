@@ -13,7 +13,7 @@ const HISTORICAL_DIGESTS_LIMIT = 30
 export async function POST(request: Request): Promise<Response> {
   const session = await auth()
 
-  if (!session?.user || session.user.role !== 'TENANT_USER' || !session.user.tenantId) {
+  if (!session?.user || !['TENANT_USER', 'TENANT_VIEWER'].includes(session.user.role) || !session.user.tenantId) {
     return new Response('Unauthorized', { status: 401 })
   }
 

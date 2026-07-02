@@ -3,7 +3,7 @@ import { prisma } from '@repo/db'
 import { Badge } from '@/components/ui/badge'
 
 export default async function TenantDigestsPage() {
-  const session = await requireRole(['TENANT_USER'])
+  const session = await requireRole(['TENANT_USER', 'TENANT_VIEWER'])
   const { tenantId } = session.user
 
   if (!tenantId) {

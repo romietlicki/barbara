@@ -29,6 +29,7 @@ const TrelloSettingsSchema = z.object({
   trelloApiKey: z.string().trim(),
   trelloToken: z.string().trim(),
   trelloListId: z.string().trim(),
+  trelloScheduleHours: z.coerce.number().int().min(1).max(24).default(2),
 })
 
 export async function updateTrelloSettingsAction(formData: FormData) {
@@ -40,10 +41,11 @@ export async function updateTrelloSettingsAction(formData: FormData) {
     trelloApiKey: formData.get('trelloApiKey'),
     trelloToken: formData.get('trelloToken'),
     trelloListId: formData.get('trelloListId'),
+    trelloScheduleHours: formData.get('trelloScheduleHours'),
   })
   if (!parsed.success) throw new Error(parsed.error.errors[0]?.message ?? 'Dados inválidos')
 
-  const { trelloApiKey, trelloToken, trelloListId } = parsed.data
+  const { trelloApiKey, trelloToken, trelloListId, trelloScheduleHours } = parsed.data
 
   await prisma.tenant.update({
     where: { id: tenantId },
@@ -51,8 +53,24 @@ export async function updateTrelloSettingsAction(formData: FormData) {
       trelloApiKey: trelloApiKey || null,
       trelloToken: trelloToken || null,
       trelloListId: trelloListId || null,
+      trelloScheduleHours,
     },
   })
+
+  // Upsert ou remove o scheduler do Trello na API
+  const apiUrl = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001'
+  const headers = await getInternalApiHeaders()
+  const schedulerUrl = `${apiUrl}/internal/trello-scheduler/${tenantId}`
+
+  if (trelloApiKey && trelloToken && trelloListId) {
+    await fetch(schedulerUrl, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ intervalHours: trelloScheduleHours }),
+    })
+  } else {
+    await fetch(schedulerUrl, { method: 'DELETE', headers })
+  }
 
   revalidatePath('/dashboard/tenant/configuracoes')
 }

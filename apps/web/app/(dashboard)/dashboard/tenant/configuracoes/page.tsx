@@ -14,7 +14,7 @@ export default async function ConfiguracoesPage() {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { name: true, email: true, digestTime: true, digestFrequency: true, digestDayOfWeek: true, digestDayOfMonth: true, timezone: true, taskadeWebhookUrl: true, trelloApiKey: true, trelloToken: true, trelloListId: true },
+    select: { name: true, email: true, digestTime: true, digestFrequency: true, digestDayOfWeek: true, digestDayOfMonth: true, timezone: true, taskadeWebhookUrl: true, trelloApiKey: true, trelloToken: true, trelloListId: true, trelloScheduleHours: true },
   })
 
   if (!tenant) notFound()
@@ -71,6 +71,7 @@ export default async function ConfiguracoesPage() {
           trelloApiKey={tenant.trelloApiKey}
           trelloToken={tenant.trelloToken}
           trelloListId={tenant.trelloListId}
+          trelloScheduleHours={tenant.trelloScheduleHours}
         />
       </div>
     </div>

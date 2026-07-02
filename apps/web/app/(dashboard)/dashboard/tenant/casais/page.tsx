@@ -5,8 +5,9 @@ import { EventClientDialog } from './_components/event-client-dialog'
 import { DeleteEventClientButton } from './_components/delete-event-client-button'
 
 export default async function CasaisPage() {
-  const session = await requireRole(['TENANT_USER'])
+  const session = await requireRole(['TENANT_USER', 'TENANT_VIEWER'])
   const { tenantId } = session.user
+  const isViewer = session.user.role === 'TENANT_VIEWER'
 
   if (!tenantId) {
     return (
@@ -31,7 +32,7 @@ export default async function CasaisPage() {
             {eventClients.length} casal(is) cadastrado(s) — cada casal recebe seu próprio digest
           </p>
         </div>
-        <EventClientDialog mode="create" />
+        {!isViewer && <EventClientDialog mode="create" />}
       </div>
 
       {eventClients.length === 0 ? (
@@ -73,24 +74,26 @@ export default async function CasaisPage() {
                   )}
                 </div>
 
-                <div className="flex gap-2 shrink-0">
-                  <EventClientDialog
-                    mode="edit"
-                    defaultValues={{
-                      id: ec.id,
-                      name: ec.name,
-                      phone: ec.phone,
-                      email: ec.email,
-                      description: ec.description,
-                      digestTime: ec.digestTime,
-                      digestFrequency: ec.digestFrequency,
-                      digestDayOfWeek: ec.digestDayOfWeek,
-                      digestDayOfMonth: ec.digestDayOfMonth,
-                      timezone: ec.timezone,
-                    }}
-                  />
-                  <DeleteEventClientButton eventClientId={ec.id} name={ec.name} />
-                </div>
+                {!isViewer && (
+                  <div className="flex gap-2 shrink-0">
+                    <EventClientDialog
+                      mode="edit"
+                      defaultValues={{
+                        id: ec.id,
+                        name: ec.name,
+                        phone: ec.phone,
+                        email: ec.email,
+                        description: ec.description,
+                        digestTime: ec.digestTime,
+                        digestFrequency: ec.digestFrequency,
+                        digestDayOfWeek: ec.digestDayOfWeek,
+                        digestDayOfMonth: ec.digestDayOfMonth,
+                        timezone: ec.timezone,
+                      }}
+                    />
+                    <DeleteEventClientButton eventClientId={ec.id} name={ec.name} />
+                  </div>
+                )}
               </div>
             </div>
           ))}

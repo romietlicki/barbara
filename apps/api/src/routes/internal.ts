@@ -6,6 +6,8 @@ import {
   removeTenantScheduler,
   upsertEventClientScheduler,
   removeEventClientScheduler,
+  upsertTrelloScheduler,
+  removeTrelloScheduler,
 } from '@repo/queue'
 
 const SchedulerBodySchema = z.object({
@@ -93,6 +95,39 @@ export async function internalRoutes(app: FastifyInstance): Promise<void> {
       }
 
       await removeEventClientScheduler(request.params.eventClientId)
+      return { ok: true }
+    },
+  )
+
+  const TrelloSchedulerBodySchema = z.object({
+    intervalHours: z.number().int().min(1).max(24),
+  })
+
+  app.post<{ Params: { tenantId: string } }>(
+    '/trello-scheduler/:tenantId',
+    async (request, reply) => {
+      const tenantId = request.auth?.tenantId
+      if (!tenantId || tenantId !== request.params.tenantId) {
+        return reply.status(403).send({ error: 'Forbidden' })
+      }
+
+      const parsed = TrelloSchedulerBodySchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ error: 'Dados inválidos' })
+
+      await upsertTrelloScheduler(tenantId, parsed.data.intervalHours)
+      return { ok: true }
+    },
+  )
+
+  app.delete<{ Params: { tenantId: string } }>(
+    '/trello-scheduler/:tenantId',
+    async (request, reply) => {
+      const tenantId = request.auth?.tenantId
+      if (!tenantId || tenantId !== request.params.tenantId) {
+        return reply.status(403).send({ error: 'Forbidden' })
+      }
+
+      await removeTrelloScheduler(tenantId)
       return { ok: true }
     },
   )

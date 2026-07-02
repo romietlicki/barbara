@@ -44,6 +44,7 @@ model Tenant {
   trelloApiKey         String?
   trelloToken          String?
   trelloListId         String?
+  trelloScheduleHours  Int     @default(2)
   createdAt            DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -53,6 +54,7 @@ model Tenant {
   messages      Message[]
   digests       Digest[]
   eventClients  EventClient[]
+  trelloExports TrelloExport[]
 
   @@index([agencyId, isActive])
 }
@@ -142,7 +144,22 @@ model Digest {
 }
 
 // ============================================================
-// USUÁRIO — cobre os três níveis de acesso
+// EXPORTAÇÕES PARA TRELLO — controle de deduplicação
+// ============================================================
+model TrelloExport {
+  id         String   @id @default(cuid())
+  tenantId   String
+  actionText String
+  exportedAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, actionText])
+  @@index([tenantId])
+}
+
+// ============================================================
+// USUÁRIO — cobre os quatro níveis de acesso
 // ============================================================
 model User {
   id           String   @id @default(cuid())
@@ -187,6 +204,7 @@ enum Role {
   SUPER_ADMIN
   AGENCY_ADMIN
   TENANT_USER
+  TENANT_VIEWER
 }
 
 enum PlanStatus {

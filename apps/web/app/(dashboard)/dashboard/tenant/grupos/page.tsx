@@ -5,8 +5,9 @@ import { TenantToggleGroupButton } from './_components/toggle-group-button'
 import { LinkEventClientSelect } from './_components/link-event-client-select'
 
 export default async function TenantGruposPage() {
-  const session = await requireRole(['TENANT_USER'])
+  const session = await requireRole(['TENANT_USER', 'TENANT_VIEWER'])
   const { tenantId } = session.user
+  const isViewer = session.user.role === 'TENANT_VIEWER'
 
   if (!tenantId) {
     return (
@@ -59,7 +60,7 @@ export default async function TenantGruposPage() {
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Casal vinculado</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-500 hidden sm:table-cell">Msgs</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
-                <th className="px-4 py-3" />
+                {!isViewer && <th className="px-4 py-3" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -74,11 +75,17 @@ export default async function TenantGruposPage() {
                     </p>
                   </td>
                   <td className="px-4 py-3">
-                    <LinkEventClientSelect
-                      groupId={group.id}
-                      currentEventClientId={group.eventClientId}
-                      options={eventClients}
-                    />
+                    {isViewer ? (
+                      <span className="text-sm text-gray-600">
+                        {group.eventClient?.name ?? <span className="text-gray-300">—</span>}
+                      </span>
+                    ) : (
+                      <LinkEventClientSelect
+                        groupId={group.id}
+                        currentEventClientId={group.eventClientId}
+                        options={eventClients}
+                      />
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
                     {group._count.messages}
@@ -88,9 +95,11 @@ export default async function TenantGruposPage() {
                       {group.isActive ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <TenantToggleGroupButton groupId={group.id} isActive={group.isActive} />
-                  </td>
+                  {!isViewer && (
+                    <td className="px-4 py-3 text-right">
+                      <TenantToggleGroupButton groupId={group.id} isActive={group.isActive} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

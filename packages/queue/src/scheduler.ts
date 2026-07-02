@@ -1,5 +1,5 @@
 import { prisma } from '@repo/db'
-import { generateDigestQueue, generateEventClientDigestQueue } from './queues'
+import { generateDigestQueue, generateEventClientDigestQueue, trelloExportQueue } from './queues'
 
 function buildCron(
   digestTime: string,
@@ -58,14 +58,35 @@ export async function removeEventClientScheduler(eventClientId: string): Promise
   await generateEventClientDigestQueue.removeJobScheduler(`event-client:${eventClientId}`)
 }
 
+export async function upsertTrelloScheduler(tenantId: string, intervalHours: number): Promise<void> {
+  await trelloExportQueue.upsertJobScheduler(
+    `trello:${tenantId}`,
+    { every: intervalHours * 60 * 60 * 1000 },
+    { name: 'trello-export', data: { tenantId } },
+  )
+}
+
+export async function removeTrelloScheduler(tenantId: string): Promise<void> {
+  await trelloExportQueue.removeJobScheduler(`trello:${tenantId}`)
+}
+
 export async function initAllSchedulers(): Promise<void> {
-  const [tenants, eventClients] = await Promise.all([
+  const [tenants, eventClients, trelloTenants] = await Promise.all([
     prisma.tenant.findMany({
       where: { isActive: true },
       select: { id: true, digestTime: true, timezone: true, digestFrequency: true, digestDayOfWeek: true, digestDayOfMonth: true },
     }),
     prisma.eventClient.findMany({
       select: { id: true, tenantId: true, digestTime: true, timezone: true, digestFrequency: true, digestDayOfWeek: true, digestDayOfMonth: true },
+    }),
+    prisma.tenant.findMany({
+      where: {
+        isActive: true,
+        trelloApiKey: { not: null },
+        trelloToken: { not: null },
+        trelloListId: { not: null },
+      },
+      select: { id: true, trelloScheduleHours: true },
     }),
   ])
 
@@ -76,7 +97,10 @@ export async function initAllSchedulers(): Promise<void> {
     ...eventClients.map((ec) =>
       upsertEventClientScheduler(ec.id, ec.tenantId, ec.digestTime, ec.timezone, ec.digestFrequency, ec.digestDayOfWeek, ec.digestDayOfMonth),
     ),
+    ...trelloTenants.map((t) =>
+      upsertTrelloScheduler(t.id, t.trelloScheduleHours),
+    ),
   ])
 
-  console.log(`[scheduler] ${tenants.length} tenant(s) + ${eventClients.length} casal(is) registrado(s)`)
+  console.log(`[scheduler] ${tenants.length} tenant(s) + ${eventClients.length} casal(is) + ${trelloTenants.length} Trello(s) registrado(s)`)
 }

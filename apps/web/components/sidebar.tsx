@@ -38,8 +38,15 @@ const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { label: 'Casais / Eventos', href: '/dashboard/tenant/casais', icon: Users },
     { label: 'Grupos', href: '/dashboard/tenant/grupos', icon: Smartphone },
     { label: 'Digests', href: '/dashboard/tenant/digests', icon: MessageSquare },
+    { label: 'Equipe', href: '/dashboard/tenant/equipe', icon: Users },
     { label: 'WhatsApp', href: '/dashboard/tenant/conectar', icon: Wifi },
     { label: 'Configurações', href: '/dashboard/tenant/configuracoes', icon: Settings },
+  ],
+  TENANT_VIEWER: [
+    { label: 'Visão Geral', href: '/dashboard/tenant', icon: LayoutDashboard },
+    { label: 'Casais / Eventos', href: '/dashboard/tenant/casais', icon: Users },
+    { label: 'Grupos', href: '/dashboard/tenant/grupos', icon: Smartphone },
+    { label: 'Digests', href: '/dashboard/tenant/digests', icon: MessageSquare },
   ],
 }
 
@@ -103,7 +110,7 @@ export function Sidebar({ role, userName, agencyName }: SidebarProps) {
         <div className="mb-2 px-2">
           <p className="truncate text-sm font-medium text-gray-900">{userName}</p>
           <p className="text-xs text-gray-400">
-            {role === 'SUPER_ADMIN' ? 'Super Admin' : role === 'AGENCY_ADMIN' ? 'Agência' : 'Cliente'}
+            {role === 'SUPER_ADMIN' ? 'Super Admin' : role === 'AGENCY_ADMIN' ? 'Agência' : role === 'TENANT_VIEWER' ? 'Visualizador' : 'Cliente'}
           </p>
         </div>
         <button
