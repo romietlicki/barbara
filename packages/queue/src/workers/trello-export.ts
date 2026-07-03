@@ -45,7 +45,13 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
       })
       const exportedTexts = new Set(existingExports.map((e) => e.actionText))
 
-      const newActions = allActions.filter((a) => !exportedTexts.has(a.content))
+      // Deduplica por texto: elimina repetições dentro dos digests e ações já exportadas
+      const seenInBatch = new Set<string>()
+      const newActions = allActions.filter((a) => {
+        if (exportedTexts.has(a.content) || seenInBatch.has(a.content)) return false
+        seenInBatch.add(a.content)
+        return true
+      })
 
       if (newActions.length === 0) {
         console.log(`[trello-export] tenantId=${tenantId} — todas as ações já exportadas`)
