@@ -1,6 +1,5 @@
-import { requireRole } from '@/lib/auth-context'
+﻿import { requireRole } from '@/lib/auth-context'
 import { prisma } from '@repo/db'
-import { notFound } from 'next/navigation'
 import { CreateViewerDialog } from './_components/create-viewer-dialog'
 import { DeleteViewerButton } from './_components/delete-viewer-button'
 
@@ -8,7 +7,13 @@ export default async function EquipePage() {
   const session = await requireRole(['TENANT_USER'])
   const { tenantId } = session.user
 
-  if (!tenantId) notFound()
+  if (!tenantId) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+        <p className="text-sm text-yellow-800">Conta sem cliente associado.</p>
+      </div>
+    )
+  }
 
   const viewers = await prisma.user.findMany({
     where: { tenantId, role: 'TENANT_VIEWER' },
@@ -32,8 +37,8 @@ export default async function EquipePage() {
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
           <p className="text-gray-500 mb-2">Nenhum colaborador cadastrado ainda.</p>
           <p className="text-sm text-gray-400">
-            Adicione colaboradores para que possam visualizar digests, grupos e casais sem permissão
-            de edição.
+            Colaboradores podem visualizar digests, grupos, casais e usar o chat com IA, mas não
+            podem editar configurações.
           </p>
         </div>
       ) : (

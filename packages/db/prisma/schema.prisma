@@ -46,15 +46,15 @@ model Tenant {
   trelloListId         String?
   trelloScheduleHours  Int     @default(2)
   createdAt            DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  updatedAt            DateTime @updatedAt
 
-  agency        Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  users         User[]        @relation("TenantUsers")
-  groups        WaGroup[]
-  messages      Message[]
-  digests       Digest[]
-  eventClients  EventClient[]
-  trelloExports TrelloExport[]
+  agency                   Agency                   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  users                    User[]                   @relation("TenantUsers")
+  groups                   WaGroup[]
+  messages                 Message[]
+  digests                  Digest[]
+  eventClients             EventClient[]
+  trelloExports            TrelloExport[]
 
   @@index([agencyId, isActive])
 }
@@ -74,11 +74,15 @@ model EventClient {
   digestDayOfWeek  Int      @default(1)
   digestDayOfMonth Int      @default(1)
   timezone         String   @default("America/Sao_Paulo")
+  trelloBoardId    String?
+  trelloListId     String?
+  trelloBoardUrl   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  groups WaGroup[]
+  tenant              Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  groups              WaGroup[]
+  trelloExports       EventClientTrelloExport[]
 
   @@index([tenantId])
 }
@@ -144,7 +148,23 @@ model Digest {
 }
 
 // ============================================================
-// EXPORTAÇÕES PARA TRELLO — controle de deduplicação
+// EXPORTAÇÕES PARA TRELLO POR CASAL — deduplicação per-couple
+// ============================================================
+model EventClientTrelloExport {
+  id            String   @id @default(cuid())
+  tenantId      String
+  eventClientId String
+  actionText    String
+  exportedAt    DateTime @default(now())
+
+  eventClient EventClient @relation(fields: [eventClientId], references: [id], onDelete: Cascade)
+
+  @@unique([eventClientId, actionText])
+  @@index([eventClientId])
+}
+
+// ============================================================
+// EXPORTAÇÕES PARA TRELLO (tenant-level) — deduplicação global
 // ============================================================
 model TrelloExport {
   id         String   @id @default(cuid())

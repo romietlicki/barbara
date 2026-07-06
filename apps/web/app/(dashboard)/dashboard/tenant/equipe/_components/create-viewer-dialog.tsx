@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -14,16 +14,15 @@ export function CreateViewerDialog() {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const form = e.currentTarget
-    const formData = new FormData(form)
+    const formData = new FormData(e.currentTarget)
     startTransition(async () => {
       try {
         await createViewerAction(formData)
-        toast.success('Colaborador adicionado com sucesso')
+        toast.success('Colaborador adicionado')
         setOpen(false)
-        form.reset()
+        ;(e.target as HTMLFormElement).reset()
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Erro ao criar colaborador')
+        toast.error(err instanceof Error ? err.message : 'Erro ao criar')
       }
     })
   }
@@ -40,50 +39,27 @@ export function CreateViewerDialog() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Novo colaborador</h2>
-        <p className="text-sm text-gray-500 mb-5">
-          Acesso de leitura — pode visualizar dados mas não pode editar configurações.
-        </p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Novo colaborador</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="viewer-name">Nome</Label>
-            <Input
-              id="viewer-name"
-              name="name"
-              placeholder="Nome do colaborador"
-              autoComplete="off"
-              required
-            />
+            <Label htmlFor="name">Nome</Label>
+            <Input id="name" name="name" placeholder="Nome do colaborador" required />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="viewer-email">Email</Label>
-            <Input
-              id="viewer-email"
-              name="email"
-              type="email"
-              placeholder="email@exemplo.com"
-              autoComplete="off"
-              required
-            />
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" placeholder="email@exemplo.com" required />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="viewer-password">Senha temporária</Label>
-            <Input
-              id="viewer-password"
-              name="password"
-              type="password"
-              placeholder="Mínimo 6 caracteres"
-              minLength={6}
-              required
-            />
+            <Label htmlFor="password">Senha temporária</Label>
+            <Input id="password" name="password" type="password" minLength={6}
+              placeholder="Mínimo 6 caracteres" required />
           </div>
+          <p className="text-xs text-gray-500">
+            O colaborador terá acesso de leitura apenas — não poderá editar configurações nem
+            reenviar digests.
+          </p>
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={isPending}
-            >
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isPending}>

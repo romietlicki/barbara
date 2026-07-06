@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
@@ -7,9 +7,9 @@ import { requireRole } from '@/lib/auth-context'
 import bcrypt from 'bcryptjs'
 
 const CreateViewerSchema = z.object({
-  name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres'),
+  name: z.string().min(2, 'Nome obrigatório'),
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter ao menos 6 caracteres'),
+  password: z.string().min(6, 'Senha mínima de 6 caracteres'),
 })
 
 export async function createViewerAction(formData: FormData) {
@@ -32,14 +32,7 @@ export async function createViewerAction(formData: FormData) {
   const passwordHash = await bcrypt.hash(password, 10)
 
   await prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      role: 'TENANT_VIEWER',
-      tenantId,
-      agencyId: agencyId ?? null,
-    },
+    data: { name, email, passwordHash, role: 'TENANT_VIEWER', tenantId, agencyId: agencyId ?? null },
   })
 
   revalidatePath('/dashboard/tenant/equipe')
@@ -60,6 +53,5 @@ export async function deleteViewerAction(userId: string) {
   }
 
   await prisma.user.delete({ where: { id: userId } })
-
   revalidatePath('/dashboard/tenant/equipe')
 }

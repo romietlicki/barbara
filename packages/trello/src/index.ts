@@ -1,1 +1,1 @@
-export { createTrelloCard } from './client'
+export { createTrelloCard, createTrelloBoard } from './client'
