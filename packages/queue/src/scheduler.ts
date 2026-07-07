@@ -84,7 +84,6 @@ export async function initAllSchedulers(): Promise<void> {
         isActive: true,
         trelloApiKey: { not: null },
         trelloToken: { not: null },
-        trelloListId: { not: null },
       },
       select: { id: true, trelloScheduleHours: true },
     }),

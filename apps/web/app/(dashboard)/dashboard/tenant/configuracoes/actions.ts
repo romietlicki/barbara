@@ -62,7 +62,7 @@ export async function updateTrelloSettingsAction(formData: FormData) {
   const headers = await getInternalApiHeaders()
   const schedulerUrl = `${apiUrl}/internal/trello-scheduler/${tenantId}`
 
-  if (trelloApiKey && trelloToken && trelloListId) {
+  if (trelloApiKey && trelloToken) {
     await fetch(schedulerUrl, {
       method: 'POST',
       headers: { ...headers, 'Content-Type': 'application/json' },

@@ -69,7 +69,10 @@ export function TrelloSettingsForm({ trelloApiKey, trelloToken, trelloListId, tr
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="trelloListId">ID da Lista</Label>
+        <Label htmlFor="trelloListId">
+          ID da Lista{' '}
+          <span className="text-gray-400 font-normal">(opcional)</span>
+        </Label>
         <Input
           id="trelloListId"
           name="trelloListId"
@@ -77,14 +80,16 @@ export function TrelloSettingsForm({ trelloApiKey, trelloToken, trelloListId, tr
           defaultValue={trelloListId ?? ''}
         />
         <p className="text-xs text-gray-500">
-          Para obter o ID correto, acesse no navegador (substituindo os valores):{' '}
+          Necessário apenas para exportar o <span className="font-medium">digest de gestão</span> (grupos não
+          vinculados a casais). Os boards por casal são criados automaticamente — este campo não afeta eles.
+        </p>
+        <p className="text-xs text-gray-400">
+          Para obter o ID: acesse{' '}
           <span className="font-mono break-all select-all">
             https://api.trello.com/1/boards/ID_DO_BOARD/lists?key=SUA_KEY&token=SEU_TOKEN
           </span>
-          {' '}— o <span className="font-medium">ID_DO_BOARD</span> é o código curto na URL do board (ex:{' '}
+          {' '}— o <span className="font-medium">ID_DO_BOARD</span> fica na URL do board (ex:{' '}
           <span className="font-mono">trello.com/b/<strong>AbCdEfGh</strong>/nome</span>).
-          No JSON retornado, cada item tem <span className="font-medium">"id"</span> e{' '}
-          <span className="font-medium">"name"</span> — copie o <span className="font-medium">"id"</span> da lista desejada.
         </p>
       </div>
 

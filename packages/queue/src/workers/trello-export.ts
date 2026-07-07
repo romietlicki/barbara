@@ -20,64 +20,58 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
         select: { trelloApiKey: true, trelloToken: true, trelloListId: true },
       })
 
-      if (!tenant?.trelloApiKey || !tenant.trelloToken || !tenant.trelloListId) {
-        console.log(`[trello-export] tenantId=${tenantId} — Trello não configurado, pulando`)
+      if (!tenant?.trelloApiKey || !tenant.trelloToken) {
+        console.log(`[trello-export] tenantId=${tenantId} — API Key/Token não configurados, pulando`)
         return
       }
 
-      const digests = await prisma.digest.findMany({
-        where: { tenantId },
-        select: { contentMd: true },
-        orderBy: { date: 'asc' },
-      })
+      // ── Export global (digest de gestão) — só se ID da Lista estiver preenchido ──
+      if (tenant.trelloListId) {
+        const digests = await prisma.digest.findMany({
+          where: { tenantId },
+          select: { contentMd: true },
+          orderBy: { date: 'asc' },
+        })
 
-      if (digests.length === 0) {
-        console.log(`[trello-export] tenantId=${tenantId} — sem digests, pulando`)
-        return
-      }
+        if (digests.length > 0) {
+          const allActions = digests.flatMap((d) => parseActionsFromDigest(d.contentMd))
 
-      const allActions = digests.flatMap((d) => parseActionsFromDigest(d.contentMd))
+          if (allActions.length > 0) {
+            const existingExports = await prisma.trelloExport.findMany({
+              where: { tenantId },
+              select: { actionText: true },
+            })
+            const exportedTexts = new Set(existingExports.map((e) => e.actionText))
 
-      if (allActions.length === 0) {
-        console.log(`[trello-export] tenantId=${tenantId} — sem ações nos digests`)
-        return
-      }
+            const seenInBatch = new Set<string>()
+            const newActions = allActions.filter((a) => {
+              if (exportedTexts.has(a.content) || seenInBatch.has(a.content)) return false
+              seenInBatch.add(a.content)
+              return true
+            })
 
-      const existingExports = await prisma.trelloExport.findMany({
-        where: { tenantId },
-        select: { actionText: true },
-      })
-      const exportedTexts = new Set(existingExports.map((e) => e.actionText))
-
-      // Deduplica por texto: elimina repetições dentro dos digests e ações já exportadas
-      const seenInBatch = new Set<string>()
-      const newActions = allActions.filter((a) => {
-        if (exportedTexts.has(a.content) || seenInBatch.has(a.content)) return false
-        seenInBatch.add(a.content)
-        return true
-      })
-
-      if (newActions.length === 0) {
-        console.log(`[trello-export] tenantId=${tenantId} — todas as ações já exportadas`)
-        return
-      }
-
-      console.log(`[trello-export] tenantId=${tenantId} — exportando ${newActions.length} ação(ões) novas`)
-
-      for (const action of newActions) {
-        try {
-          await createTrelloCard(
-            tenant.trelloApiKey!,
-            tenant.trelloToken!,
-            tenant.trelloListId!,
-            action.content,
-            action.criticality,
-          )
-          await prisma.trelloExport.create({
-            data: { tenantId, actionText: action.content },
-          })
-        } catch (err) {
-          console.error(`[trello-export] falha ao criar card "${action.content}": ${err}`)
+            if (newActions.length > 0) {
+              console.log(`[trello-export] tenantId=${tenantId} — exportando ${newActions.length} ação(ões) globais`)
+              for (const action of newActions) {
+                try {
+                  await createTrelloCard(
+                    tenant.trelloApiKey!,
+                    tenant.trelloToken!,
+                    tenant.trelloListId!,
+                    action.content,
+                    action.criticality,
+                  )
+                  await prisma.trelloExport.create({
+                    data: { tenantId, actionText: action.content },
+                  })
+                } catch (err) {
+                  console.error(`[trello-export] falha ao criar card "${action.content}": ${err}`)
+                }
+              }
+            } else {
+              console.log(`[trello-export] tenantId=${tenantId} — todas as ações globais já exportadas`)
+            }
+          }
         }
       }
 
