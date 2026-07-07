@@ -25,9 +25,11 @@ export function buildCoupleDigestPrompt(
 
   const formattedMessages = messages
     .map((m) => {
-      const time = m.timestamp.toISOString().slice(11, 16)
+      const d = m.timestamp
+      const date = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+      const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
       const groupName = groupMap.get(m.groupId) ?? m.groupId
-      return `[${groupName}] ${time} — ${m.author}: ${m.content}`
+      return `[${groupName}] ${date} ${time} — ${m.author}: ${m.content}`
     })
     .join('\n')
 
@@ -45,7 +47,7 @@ Regras:
 - Escreva em português do Brasil.`
 
   const user = `Você é um assistente de planejamento de casamentos.
-Abaixo estão as mensagens do grupo "${coupleName}" do dia ${dateLabel}.
+Abaixo estão as mensagens do grupo "${coupleName}" do período: ${dateLabel}.
 
 MENSAGENS:
 ${formattedMessages}
@@ -78,8 +80,6 @@ export function buildDigestPrompt(
   tenantName: string,
   dateLabel: string,
 ): DigestPrompt {
-  const groupMap = new Map(groups.map((g) => [g.id, g.name]))
-
   // Agrupa mensagens por grupo
   const messagesByGroup = new Map<string, MessageForDigest[]>()
   for (const m of messages) {
@@ -104,10 +104,6 @@ export function buildDigestPrompt(
     .join('\n\n')
 
   const totalGroups = groups.filter((g) => messagesByGroup.has(g.id)).length
-  const groupNames = groups
-    .filter((g) => messagesByGroup.has(g.id))
-    .map((g) => g.name)
-    .join(', ')
 
   const now = new Date()
   const sentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`

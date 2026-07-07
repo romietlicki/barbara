@@ -1,5 +1,4 @@
 import { Worker } from 'bullmq'
-import { DateTime } from 'luxon'
 import { prisma } from '@repo/db'
 import { buildCoupleDigestPrompt, callClaude, parseDigestOutput } from '@repo/ai'
 import { parseActionsFromDigest } from '@repo/taskade'
@@ -97,7 +96,7 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
           continue
         }
 
-        const dateLabel = DateTime.now().setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd')
+        const dateLabel = `últimos ${COUPLE_MESSAGES_DAYS} dias`
         const messagesForDigest = messages.map((m) => ({
           groupId: m.groupId,
           author: m.author,
