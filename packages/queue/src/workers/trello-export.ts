@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq'
 import { prisma } from '@repo/db'
-import { buildCoupleDigestPrompt, callClaude, parseDigestOutput } from '@repo/ai'
+import { buildCoupleTrelloActionsPrompt, callClaude, TRELLO_NO_ACTIONS_MARKER } from '@repo/ai'
 import { parseActionsFromDigest } from '@repo/taskade'
 import { createTrelloCard } from '@repo/trello'
 import { getConnectionOptions } from '../connection'
@@ -106,10 +106,13 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
 
         let coupleActions: Awaited<ReturnType<typeof parseActionsFromDigest>> = []
         try {
-          const prompt = buildCoupleDigestPrompt(messagesForDigest, ec.groups, ec.name, dateLabel)
+          const prompt = buildCoupleTrelloActionsPrompt(messagesForDigest, ec.groups, ec.name, dateLabel)
           const raw = await callClaude(prompt)
-          const content = parseDigestOutput(raw)
-          coupleActions = parseActionsFromDigest(content)
+          if (raw.includes(TRELLO_NO_ACTIONS_MARKER)) {
+            console.log(`[trello-export] casal "${ec.name}" — sem ações concretas, nenhum card criado`)
+            continue
+          }
+          coupleActions = parseActionsFromDigest(raw)
         } catch (err) {
           console.error(`[trello-export] falha ao gerar ações para casal "${ec.name}": ${err}`)
           continue

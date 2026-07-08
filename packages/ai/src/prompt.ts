@@ -74,6 +74,50 @@ Total: ${messages.length} mensagem(ns) · enviado às ${sentTime}`
   return { system, user }
 }
 
+export const TRELLO_NO_ACTIONS_MARKER = 'SEM_AÇÕES'
+
+export function buildCoupleTrelloActionsPrompt(
+  messages: MessageForDigest[],
+  groups: GroupInfo[],
+  coupleName: string,
+  periodLabel: string,
+): DigestPrompt {
+  const groupMap = new Map(groups.map((g) => [g.id, g.name]))
+
+  const formattedMessages = messages
+    .map((m) => {
+      const d = m.timestamp
+      const date = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+      const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+      const groupName = groupMap.get(m.groupId) ?? m.groupId
+      return `[${groupName}] ${date} ${time} — ${m.author}: ${m.content}`
+    })
+    .join('\n')
+
+  const system = `Você é um assistente especializado em planejamento de casamentos.
+Sua função é identificar APENAS ações concretas e reais nas mensagens de WhatsApp do grupo do evento.
+
+Regras OBRIGATÓRIAS:
+- Extraia somente ações que surgem DIRETAMENTE do conteúdo das mensagens (prazos, aprovações, orçamentos, decisões pendentes, confirmações de fornecedores).
+- NUNCA invente ações. NUNCA crie ações genéricas, placeholders ou metaações.
+- Exemplos PROIBIDOS de ações a NÃO criar: "verificar se mensagens foram enviadas", "confirmar com a equipe se há atualizações", "checar se o grupo correto está sendo usado".
+- Se as mensagens não contiverem ações concretas de planejamento, responda APENAS com: ${TRELLO_NO_ACTIONS_MARKER}
+- Escreva em português do Brasil.`
+
+  const user = `Mensagens do grupo "${coupleName}" — ${periodLabel}:
+
+${formattedMessages}
+
+Se houver ações concretas de planejamento do casamento, liste-as abaixo (máximo 5):
+- [Alta] descrição da ação urgente
+- [Média] descrição da ação importante
+- [Baixa] descrição da ação de baixa prioridade
+
+Se NÃO houver ações concretas nas mensagens, responda APENAS: ${TRELLO_NO_ACTIONS_MARKER}`
+
+  return { system, user }
+}
+
 export function buildDigestPrompt(
   messages: MessageForDigest[],
   groups: GroupInfo[],
