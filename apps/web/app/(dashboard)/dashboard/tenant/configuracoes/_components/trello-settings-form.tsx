@@ -69,10 +69,7 @@ export function TrelloSettingsForm({ trelloApiKey, trelloToken, trelloListId, tr
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="trelloListId">
-          ID da Lista{' '}
-          <span className="text-gray-400 font-normal">(opcional)</span>
-        </Label>
+        <Label htmlFor="trelloListId">ID da Lista</Label>
         <Input
           id="trelloListId"
           name="trelloListId"
@@ -80,8 +77,7 @@ export function TrelloSettingsForm({ trelloApiKey, trelloToken, trelloListId, tr
           defaultValue={trelloListId ?? ''}
         />
         <p className="text-xs text-gray-500">
-          Necessário apenas para exportar o <span className="font-medium">digest de gestão</span> (grupos não
-          vinculados a casais). Os boards por casal são criados automaticamente — este campo não afeta eles.
+          Lista onde serão criados os cards — tanto o digest de gestão quanto os cards de cada casal.
         </p>
         <p className="text-xs text-gray-400">
           Para obter o ID: acesse{' '}
