@@ -13,7 +13,6 @@
     "@repo/ai": "workspace:*",
     "@repo/db": "workspace:*",
     "@repo/email": "workspace:*",
-    "@repo/trello": "workspace:*",
     "@repo/whatsapp": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-label": "^2.1.0",

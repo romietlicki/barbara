@@ -4,7 +4,6 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@repo/db'
 import { requireRole, getInternalApiHeaders } from '@/lib/auth-context'
-import { createTrelloBoard } from '@repo/trello'
 
 const EventClientSchema = z.object({
   name: z.string().min(2, 'Nome obrigatório'),
@@ -57,31 +56,6 @@ export async function createEventClientAction(formData: FormData) {
   await callSchedulerApi(`/internal/scheduler/event-client/${ec.id}`, 'POST', {
     digestTime, timezone, digestFrequency, digestDayOfWeek, digestDayOfMonth,
   })
-
-  // Cria board no Trello automaticamente se o tenant tiver credenciais configuradas
-  void (async () => {
-    try {
-      const tenant = await prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { trelloApiKey: true, trelloToken: true, name: true },
-      })
-      if (!tenant?.trelloApiKey || !tenant.trelloToken) return
-
-      const boardName = `${parsed.data.name} — ${tenant.name}`
-      const { boardId, listId, boardUrl } = await createTrelloBoard(
-        tenant.trelloApiKey,
-        tenant.trelloToken,
-        boardName,
-      )
-      await prisma.eventClient.update({
-        where: { id: ec.id },
-        data: { trelloBoardId: boardId, trelloListId: listId, trelloBoardUrl: boardUrl },
-      })
-      console.log(`[casais] board Trello criado para "${parsed.data.name}": ${boardUrl}`)
-    } catch (err) {
-      console.error(`[casais] falha ao criar board Trello para "${parsed.data.name}": ${err}`)
-    }
-  })()
 
   revalidatePath('/dashboard/tenant/casais')
 }

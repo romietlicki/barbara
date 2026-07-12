@@ -25,6 +25,8 @@ async function trelloFetch(method: string, path: string, apiKey: string, token: 
   return res.json()
 }
 
+// ── Cards ─────────────────────────────────────────────────────────────────────
+
 export async function createTrelloCard(
   apiKey: string,
   token: string,
@@ -36,22 +38,53 @@ export async function createTrelloCard(
   await trelloFetch('POST', '/cards', apiKey, token, { name, idList: listId })
 }
 
-export async function createTrelloBoard(
+export async function createCoupleCard(
   apiKey: string,
   token: string,
-  name: string,
-): Promise<{ boardId: string; listId: string; boardUrl: string }> {
-  // Cria o board sem listas padrão (To Do / Doing / Done)
-  const board = await trelloFetch('POST', '/boards', apiKey, token, {
-    name,
-    defaultLists: false,
-  }) as { id: string; shortUrl: string }
-
-  // Cria uma lista "Ações" no board recém-criado
-  const list = await trelloFetch('POST', '/lists', apiKey, token, {
-    name: 'Ações',
-    idBoard: board.id,
+  listId: string,
+  coupleName: string,
+): Promise<string> {
+  const card = await trelloFetch('POST', '/cards', apiKey, token, {
+    name: coupleName,
+    idList: listId,
   }) as { id: string }
+  return card.id
+}
 
-  return { boardId: board.id, listId: list.id, boardUrl: board.shortUrl }
+// ── Checklists ────────────────────────────────────────────────────────────────
+
+export interface TrelloChecklist {
+  id: string
+  name: string
+  checkItems: { id: string; name: string }[]
+}
+
+export async function getCardChecklists(
+  apiKey: string,
+  token: string,
+  cardId: string,
+): Promise<TrelloChecklist[]> {
+  return trelloFetch('GET', `/cards/${cardId}/checklists`, apiKey, token) as Promise<TrelloChecklist[]>
+}
+
+export async function createChecklist(
+  apiKey: string,
+  token: string,
+  cardId: string,
+  name: string,
+): Promise<string> {
+  const checklist = await trelloFetch('POST', '/checklists', apiKey, token, {
+    idCard: cardId,
+    name,
+  }) as { id: string }
+  return checklist.id
+}
+
+export async function addChecklistItem(
+  apiKey: string,
+  token: string,
+  checklistId: string,
+  name: string,
+): Promise<void> {
+  await trelloFetch('POST', `/checklists/${checklistId}/checkItems`, apiKey, token, { name })
 }

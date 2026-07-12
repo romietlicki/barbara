@@ -1,6 +1,6 @@
 import { requireRole } from '@/lib/auth-context'
 import { prisma } from '@repo/db'
-import { Mail, Phone, ExternalLink } from 'lucide-react'
+import { Mail, Phone } from 'lucide-react'
 import { EventClientDialog } from './_components/event-client-dialog'
 import { DeleteEventClientButton } from './_components/delete-event-client-button'
 
@@ -24,7 +24,6 @@ export default async function CasaisPage() {
       id: true, name: true, email: true, phone: true, description: true,
       digestTime: true, digestFrequency: true, digestDayOfWeek: true,
       digestDayOfMonth: true, timezone: true,
-      trelloBoardUrl: true,
       _count: { select: { groups: true } },
     },
   })
@@ -73,17 +72,6 @@ export default async function CasaisPage() {
                       <Phone className="h-3.5 w-3.5 shrink-0" />
                       {ec.phone}
                     </span>
-                    {ec.trelloBoardUrl && (
-                      <a
-                        href={ec.trelloBoardUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-blue-500 hover:text-blue-700"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                        Board Trello
-                      </a>
-                    )}
                   </div>
 
                   {ec.description && (
