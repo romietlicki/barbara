@@ -93,9 +93,6 @@ importers:
       '@repo/email':
         specifier: workspace:*
         version: link:../../packages/email
-      '@repo/trello':
-        specifier: workspace:*
-        version: link:../../packages/trello
       '@repo/whatsapp':
         specifier: workspace:*
         version: link:../../packages/whatsapp
