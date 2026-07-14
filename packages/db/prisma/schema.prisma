@@ -149,16 +149,22 @@ model Digest {
 // EXPORTAÇÕES PARA TRELLO POR CASAL — deduplicação per-couple
 // ============================================================
 model EventClientTrelloExport {
-  id            String   @id @default(cuid())
-  tenantId      String
-  eventClientId String
-  actionText    String
-  exportedAt    DateTime @default(now())
+  id             String    @id @default(cuid())
+  tenantId       String
+  eventClientId  String
+  actionText     String
+  trelloItemId   String?
+  checklistName  String?
+  status         String    @default("pending")
+  doneAt         DateTime?
+  exportedAt     DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   eventClient EventClient @relation(fields: [eventClientId], references: [id], onDelete: Cascade)
 
   @@unique([eventClientId, actionText])
   @@index([eventClientId])
+  @@index([eventClientId, status])
 }
 
 // ============================================================

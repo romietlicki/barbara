@@ -31,7 +31,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const recentSince = new Date(Date.now() - RECENT_MESSAGES_DAYS * 24 * 60 * 60 * 1000)
 
-  const [tenant, eventClients, recentMessages, historicalDigests, messageStats] = await Promise.all([
+  const [tenant, eventClients, trelloExports, recentMessages, historicalDigests, messageStats] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { name: true },
@@ -46,6 +46,19 @@ export async function POST(request: Request): Promise<Response> {
         description: true,
         groups: { select: { id: true, name: true } },
       },
+    }),
+
+    // Itens do Trello por casal com status
+    prisma.eventClientTrelloExport.findMany({
+      where: { tenantId },
+      select: {
+        actionText: true,
+        checklistName: true,
+        status: true,
+        doneAt: true,
+        eventClient: { select: { name: true } },
+      },
+      orderBy: { exportedAt: 'asc' },
     }),
 
     // Mensagens brutas recentes — sem filtro de isActive: mensagens no banco já foram
@@ -83,6 +96,29 @@ export async function POST(request: Request): Promise<Response> {
       _max: { timestamp: true },
     }),
   ])
+
+  // Contexto do Trello — ações por casal com status
+  const trelloCtx = (() => {
+    if (trelloExports.length === 0) return ''
+    const byCouple = new Map<string, typeof trelloExports>()
+    for (const item of trelloExports) {
+      const name = item.eventClient.name
+      if (!byCouple.has(name)) byCouple.set(name, [])
+      byCouple.get(name)!.push(item)
+    }
+    const lines: string[] = ['AÇÕES NO TRELLO POR CASAL:']
+    for (const [coupleName, items] of byCouple) {
+      lines.push(`\n${coupleName}:`)
+      for (const item of items) {
+        const checklist = item.checklistName ?? 'Geral'
+        const statusLabel = item.status === 'done'
+          ? `concluído${item.doneAt ? ` em ${new Date(item.doneAt).toLocaleDateString('pt-BR')}` : ''}`
+          : 'pendente'
+        lines.push(`  • [${checklist}] ${item.actionText} → ${statusLabel}`)
+      }
+    }
+    return lines.join('\n')
+  })()
 
   // Contexto dos casais
   const eventClientsCtx = eventClients.length > 0
@@ -132,6 +168,7 @@ Você tem acesso completo ao histórico de dados da empresa:
 - Resumos diários (digests) dos períodos anteriores — contexto compacto de longo prazo
 - Mensagens brutas dos últimos ${RECENT_MESSAGES_DAYS} dias — detalhes recentes
 - Cadastro completo dos casais e seus grupos de WhatsApp
+- Ações criadas no Trello por casal, com status (pendente ou concluído)
 
 Regras:
 - Responda sempre em português do Brasil
@@ -143,6 +180,8 @@ Regras:
 ${statsCtx}
 
 ${eventClientsCtx}
+
+${trelloCtx}
 
 ${historicalCtx}
 

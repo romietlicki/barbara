@@ -91,6 +91,44 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
       for (const ec of eventClients) {
         if (ec.groups.length === 0) continue
 
+        // ── 1. Sincroniza status dos itens com o Trello ───────────────────────
+        if (ec.trelloCardId) {
+          try {
+            const checklists = await getCardChecklists(trelloApiKey, trelloToken, ec.trelloCardId)
+            for (const cl of checklists) {
+              for (const item of cl.checkItems) {
+                const isDone = item.state === 'complete'
+                // Tenta pelo trelloItemId; se não achar, tenta pelo texto
+                const byId = await prisma.eventClientTrelloExport.findFirst({
+                  where: { eventClientId: ec.id, trelloItemId: item.id },
+                })
+                if (byId) {
+                  if (byId.status !== (isDone ? 'done' : 'pending')) {
+                    await prisma.eventClientTrelloExport.update({
+                      where: { id: byId.id },
+                      data: { status: isDone ? 'done' : 'pending', doneAt: isDone ? new Date() : null },
+                    })
+                  }
+                } else {
+                  // Vincula pelo texto (registros criados antes do trelloItemId existir)
+                  await prisma.eventClientTrelloExport.updateMany({
+                    where: { eventClientId: ec.id, actionText: item.name, trelloItemId: null },
+                    data: {
+                      trelloItemId: item.id,
+                      checklistName: cl.name,
+                      status: isDone ? 'done' : 'pending',
+                      doneAt: isDone ? new Date() : null,
+                    },
+                  })
+                }
+              }
+            }
+          } catch (err) {
+            console.error(`[trello-export] casal "${ec.name}" — falha ao sincronizar status: ${err}`)
+          }
+        }
+
+        // ── 2. Busca mensagens e gera ações via IA ───────────────────────────
         const recentSince = new Date(Date.now() - COUPLE_MESSAGES_DAYS * 24 * 60 * 60 * 1000)
         const groupIds = ec.groups.map((g) => g.id)
 
@@ -132,6 +170,7 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
 
         if (coupleActions.length === 0) continue
 
+        // ── 3. Filtra ações já registradas (pending OU done) ─────────────────
         const existingExports = await prisma.eventClientTrelloExport.findMany({
           where: { eventClientId: ec.id },
           select: { actionText: true },
@@ -146,19 +185,18 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
         })
 
         if (newActions.length === 0) {
-          console.log(`[trello-export] casal "${ec.name}" — todas as ações já exportadas`)
+          console.log(`[trello-export] casal "${ec.name}" — todas as ações já registradas`)
           continue
         }
 
+        // ── 4. Cria/atualiza card e adiciona itens nos checklists ─────────────
         try {
-          // Obtém ou cria o card do casal
           let cardId = ec.trelloCardId
           if (!cardId) {
             cardId = await createCoupleCard(trelloApiKey, trelloToken, trelloListId, ec.name)
             await prisma.eventClient.update({ where: { id: ec.id }, data: { trelloCardId: cardId } })
           }
 
-          // Busca checklists existentes no card e cria os que faltam
           const existingChecklists = await getCardChecklists(trelloApiKey, trelloToken, cardId)
           const checklistMap = new Map(existingChecklists.map((c) => [c.name, c.id]))
 
@@ -171,13 +209,20 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
             }
           }
 
-          // Adiciona os itens novos nos checklists correspondentes
           for (const action of newActions) {
             try {
-              const checklistId = checklistMap.get(CHECKLIST_NAMES[action.criticality]!)!
-              await addChecklistItem(trelloApiKey, trelloToken, checklistId, action.content)
+              const clName = CHECKLIST_NAMES[action.criticality]!
+              const checklistId = checklistMap.get(clName)!
+              const itemId = await addChecklistItem(trelloApiKey, trelloToken, checklistId, action.content)
               await prisma.eventClientTrelloExport.create({
-                data: { tenantId, eventClientId: ec.id, actionText: action.content },
+                data: {
+                  tenantId,
+                  eventClientId: ec.id,
+                  actionText: action.content,
+                  trelloItemId: itemId,
+                  checklistName: clName,
+                  status: 'pending',
+                },
               })
             } catch (err) {
               console.error(`[trello-export] casal "${ec.name}" — falha no item "${action.content}": ${err}`)

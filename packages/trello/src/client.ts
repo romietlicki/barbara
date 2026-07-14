@@ -53,10 +53,16 @@ export async function createCoupleCard(
 
 // ── Checklists ────────────────────────────────────────────────────────────────
 
+export interface TrelloCheckItem {
+  id: string
+  name: string
+  state: 'complete' | 'incomplete'
+}
+
 export interface TrelloChecklist {
   id: string
   name: string
-  checkItems: { id: string; name: string }[]
+  checkItems: TrelloCheckItem[]
 }
 
 export async function getCardChecklists(
@@ -85,6 +91,7 @@ export async function addChecklistItem(
   token: string,
   checklistId: string,
   name: string,
-): Promise<void> {
-  await trelloFetch('POST', `/checklists/${checklistId}/checkItems`, apiKey, token, { name })
+): Promise<string> {
+  const item = await trelloFetch('POST', `/checklists/${checklistId}/checkItems`, apiKey, token, { name }) as { id: string }
+  return item.id
 }
