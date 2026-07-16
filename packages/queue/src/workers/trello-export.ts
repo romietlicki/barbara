@@ -210,7 +210,12 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
         }
 
         // ── 5. Garante card único — erros aqui são fatais para este casal ──────
-        let cardId = ec.trelloCardId
+        // Re-lê do banco para evitar duplicata em caso de runs simultâneos
+        const freshEc = await prisma.eventClient.findUnique({
+          where: { id: ec.id },
+          select: { trelloCardId: true },
+        })
+        let cardId = freshEc?.trelloCardId ?? ec.trelloCardId
         if (!cardId) {
           try {
             cardId = await createCoupleCard(trelloApiKey, trelloToken, trelloListId, ec.name)
