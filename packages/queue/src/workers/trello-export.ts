@@ -84,12 +84,16 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
           id: true,
           name: true,
           trelloCardId: true,
+          trelloLastCheckedAt: true,
           groups: { where: { isActive: true }, select: { id: true, name: true } },
         },
       })
 
       for (const ec of eventClients) {
         if (ec.groups.length === 0) continue
+
+        const recentSince = new Date(Date.now() - COUPLE_MESSAGES_DAYS * 24 * 60 * 60 * 1000)
+        const groupIds = ec.groups.map((g) => g.id)
 
         // ── 1. Sincroniza status dos itens com o Trello ───────────────────────
         if (ec.trelloCardId) {
@@ -98,7 +102,6 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
             for (const cl of checklists) {
               for (const item of cl.checkItems) {
                 const isDone = item.state === 'complete'
-                // Tenta pelo trelloItemId; se não achar, tenta pelo texto
                 const byId = await prisma.eventClientTrelloExport.findFirst({
                   where: { eventClientId: ec.id, trelloItemId: item.id },
                 })
@@ -110,7 +113,6 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
                     })
                   }
                 } else {
-                  // Vincula pelo texto (registros criados antes do trelloItemId existir)
                   await prisma.eventClientTrelloExport.updateMany({
                     where: { eventClientId: ec.id, actionText: item.name, trelloItemId: null },
                     data: {
@@ -128,19 +130,29 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
           }
         }
 
-        // ── 2. Busca mensagens e gera ações via IA ───────────────────────────
-        const recentSince = new Date(Date.now() - COUPLE_MESSAGES_DAYS * 24 * 60 * 60 * 1000)
-        const groupIds = ec.groups.map((g) => g.id)
+        // ── 2. Verifica se há mensagens novas desde a última análise ──────────
+        // Consulta barata: apenas o timestamp da mensagem mais recente
+        const latestMessage = await prisma.message.findFirst({
+          where: { tenantId, groupId: { in: groupIds }, timestamp: { gte: recentSince } },
+          orderBy: { timestamp: 'desc' },
+          select: { timestamp: true },
+        })
 
+        if (!latestMessage) {
+          console.log(`[trello-export] casal "${ec.name}" — sem mensagens recentes, pulando`)
+          continue
+        }
+
+        if (ec.trelloLastCheckedAt && latestMessage.timestamp <= ec.trelloLastCheckedAt) {
+          console.log(`[trello-export] casal "${ec.name}" — sem mensagens novas desde última análise, pulando IA`)
+          continue
+        }
+
+        // ── 3. Carrega mensagens completas e chama a IA ───────────────────────
         const messages = await prisma.message.findMany({
           where: { tenantId, groupId: { in: groupIds }, timestamp: { gte: recentSince } },
           orderBy: { timestamp: 'asc' },
         })
-
-        if (messages.length === 0) {
-          console.log(`[trello-export] casal "${ec.name}" — sem mensagens recentes, pulando`)
-          continue
-        }
 
         const messagesForDigest = messages.map((m) => ({
           groupId: m.groupId,
@@ -158,6 +170,14 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
             `últimos ${COUPLE_MESSAGES_DAYS} dias`,
           )
           const raw = await callClaude(prompt)
+
+          // Registra que analisamos até agora, independente do resultado da IA.
+          // Se esta atualização falhar, a próxima rodada chamará a IA novamente — aceitável.
+          await prisma.eventClient.update({
+            where: { id: ec.id },
+            data: { trelloLastCheckedAt: new Date() },
+          })
+
           if (raw.includes(TRELLO_NO_ACTIONS_MARKER)) {
             console.log(`[trello-export] casal "${ec.name}" — sem ações concretas, nenhum item criado`)
             continue
@@ -170,7 +190,7 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
 
         if (coupleActions.length === 0) continue
 
-        // ── 3. Filtra ações já registradas (pending OU done) ─────────────────
+        // ── 4. Filtra ações já registradas (pending OU done) ──────────────────
         const existingExports = await prisma.eventClientTrelloExport.findMany({
           where: { eventClientId: ec.id },
           select: { actionText: true },
@@ -189,14 +209,29 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
           continue
         }
 
-        // ── 4. Cria/atualiza card e adiciona itens nos checklists ─────────────
-        try {
-          let cardId = ec.trelloCardId
-          if (!cardId) {
+        // ── 5. Garante card único — erros aqui são fatais para este casal ──────
+        let cardId = ec.trelloCardId
+        if (!cardId) {
+          try {
             cardId = await createCoupleCard(trelloApiKey, trelloToken, trelloListId, ec.name)
-            await prisma.eventClient.update({ where: { id: ec.id }, data: { trelloCardId: cardId } })
+            console.log(`[trello-export] casal "${ec.name}" — card criado no Trello: ${cardId}`)
+          } catch (err) {
+            console.error(`[trello-export] casal "${ec.name}" — falha ao criar card no Trello: ${err}`)
+            continue
           }
+          try {
+            await prisma.eventClient.update({ where: { id: ec.id }, data: { trelloCardId: cardId } })
+            console.log(`[trello-export] casal "${ec.name}" — trelloCardId salvo no banco`)
+          } catch (err) {
+            // Card existe no Trello mas o ID não foi salvo — a próxima rodada criaria duplicata.
+            // Interrompemos o casal para evitar adicionar itens a um card "fantasma".
+            console.error(`[trello-export] casal "${ec.name}" — CRÍTICO: card criado (${cardId}) mas falha ao salvar no banco: ${err}`)
+            continue
+          }
+        }
 
+        // ── 6. Adiciona itens nos checklists ──────────────────────────────────
+        try {
           const existingChecklists = await getCardChecklists(trelloApiKey, trelloToken, cardId)
           const checklistMap = new Map(existingChecklists.map((c) => [c.name, c.id]))
 
@@ -231,7 +266,7 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
 
           console.log(`[trello-export] casal "${ec.name}" — ${newActions.length} item(ns) adicionado(s) ao card`)
         } catch (err) {
-          console.error(`[trello-export] casal "${ec.name}" — falha ao criar/atualizar card: ${err}`)
+          console.error(`[trello-export] casal "${ec.name}" — falha ao atualizar checklists: ${err}`)
         }
       }
     },

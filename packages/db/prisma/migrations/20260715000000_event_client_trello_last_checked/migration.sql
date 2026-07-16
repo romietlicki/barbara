@@ -1,0 +1,1 @@
+ALTER TABLE "EventClient" ADD COLUMN IF NOT EXISTS "trelloLastCheckedAt" TIMESTAMP(3);
