@@ -2,7 +2,7 @@ import { Worker } from 'bullmq'
 import { prisma } from '@repo/db'
 import { buildCoupleTrelloActionsPrompt, callClaude, TRELLO_NO_ACTIONS_MARKER } from '@repo/ai'
 import { parseActionsFromDigest } from '@repo/taskade'
-import { createTrelloCard, createCoupleCard, getCardChecklists, createChecklist, addChecklistItem } from '@repo/trello'
+import { createCoupleCard, getCardChecklists, createChecklist, addChecklistItem } from '@repo/trello'
 import { getConnectionOptions } from '../connection'
 import type { TrelloExportJobData } from '../jobs'
 
@@ -36,46 +36,6 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
       }
 
       const { trelloApiKey, trelloToken, trelloListId } = tenant as { trelloApiKey: string; trelloToken: string; trelloListId: string }
-
-      // ── Export global (digest de gestão) ─────────────────────────────────────
-      const digests = await prisma.digest.findMany({
-        where: { tenantId },
-        select: { contentMd: true },
-        orderBy: { date: 'asc' },
-      })
-
-      if (digests.length > 0) {
-        const allActions = digests.flatMap((d) => parseActionsFromDigest(d.contentMd))
-
-        if (allActions.length > 0) {
-          const existingExports = await prisma.trelloExport.findMany({
-            where: { tenantId },
-            select: { actionText: true },
-          })
-          const exportedTexts = new Set(existingExports.map((e) => e.actionText))
-
-          const seenInBatch = new Set<string>()
-          const newActions = allActions.filter((a) => {
-            if (exportedTexts.has(a.content) || seenInBatch.has(a.content)) return false
-            seenInBatch.add(a.content)
-            return true
-          })
-
-          if (newActions.length > 0) {
-            console.log(`[trello-export] tenantId=${tenantId} — exportando ${newActions.length} ação(ões) globais`)
-            for (const action of newActions) {
-              try {
-                await createTrelloCard(trelloApiKey, trelloToken, trelloListId, action.content, action.criticality)
-                await prisma.trelloExport.create({ data: { tenantId, actionText: action.content } })
-              } catch (err) {
-                console.error(`[trello-export] falha ao criar card "${action.content}": ${err}`)
-              }
-            }
-          } else {
-            console.log(`[trello-export] tenantId=${tenantId} — todas as ações globais já exportadas`)
-          }
-        }
-      }
 
       // ── Export por casal (card único com checklists) ──────────────────────────
       const eventClients = await prisma.eventClient.findMany({
