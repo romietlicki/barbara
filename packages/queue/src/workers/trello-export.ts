@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq'
 import { prisma } from '@repo/db'
-import { buildCoupleTrelloActionsPrompt, callClaude, TRELLO_NO_ACTIONS_MARKER } from '@repo/ai'
+import { buildCoupleTrelloActionsPrompt, callClaude, TRELLO_NO_ACTIONS_MARKER, type ExistingTrelloAction } from '@repo/ai'
 import { parseActionsFromDigest } from '@repo/taskade'
 import { createCoupleCard, getCardChecklists, createChecklist, addChecklistItem } from '@repo/trello'
 import { getConnectionOptions } from '../connection'
@@ -108,7 +108,18 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
           continue
         }
 
-        // ── 3. Carrega mensagens completas e chama a IA ───────────────────────
+        // ── 3. Busca ações já registradas (antes do Claude, para incluir no prompt) ──
+        const existingExports = await prisma.eventClientTrelloExport.findMany({
+          where: { eventClientId: ec.id },
+          select: { actionText: true, status: true },
+        })
+        const existingActions: ExistingTrelloAction[] = existingExports.map((e) => ({
+          text: e.actionText,
+          status: e.status === 'done' ? 'done' : 'pending',
+        }))
+        const exportedTexts = new Set(existingExports.map((e) => e.actionText))
+
+        // ── 4. Carrega mensagens completas e chama a IA ───────────────────────
         const messages = await prisma.message.findMany({
           where: { tenantId, groupId: { in: groupIds }, timestamp: { gte: recentSince } },
           orderBy: { timestamp: 'asc' },
@@ -128,6 +139,7 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
             ec.groups,
             ec.name,
             `últimos ${COUPLE_MESSAGES_DAYS} dias`,
+            existingActions,
           )
           const raw = await callClaude(prompt)
 
@@ -150,13 +162,7 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
 
         if (coupleActions.length === 0) continue
 
-        // ── 4. Filtra ações já registradas (pending OU done) ──────────────────
-        const existingExports = await prisma.eventClientTrelloExport.findMany({
-          where: { eventClientId: ec.id },
-          select: { actionText: true },
-        })
-        const exportedTexts = new Set(existingExports.map((e) => e.actionText))
-
+        // ── 5. Filtra pelo texto as ações que por algum motivo o Claude repetiu ──
         const seenInBatch = new Set<string>()
         const newActions = coupleActions.filter((a) => {
           if (exportedTexts.has(a.content) || seenInBatch.has(a.content)) return false
@@ -214,8 +220,9 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
               const clName = CHECKLIST_NAMES[action.criticality]!
               const checklistId = checklistMap.get(clName)!
               const itemId = await addChecklistItem(trelloApiKey, trelloToken, checklistId, action.content)
-              await prisma.eventClientTrelloExport.create({
-                data: {
+              await prisma.eventClientTrelloExport.upsert({
+                where: { eventClientId_actionText: { eventClientId: ec.id, actionText: action.content } },
+                create: {
                   tenantId,
                   eventClientId: ec.id,
                   actionText: action.content,
@@ -223,6 +230,7 @@ export function createTrelloExportWorker(): Worker<TrelloExportJobData> {
                   checklistName: clName,
                   status: 'pending',
                 },
+                update: { trelloItemId: itemId, checklistName: clName },
               })
             } catch (err) {
               console.error(`[trello-export] casal "${ec.name}" — falha no item "${action.content}": ${err}`)

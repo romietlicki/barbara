@@ -76,11 +76,17 @@ Total: ${messages.length} mensagem(ns) · enviado às ${sentTime}`
 
 export const TRELLO_NO_ACTIONS_MARKER = 'SEM_AÇÕES'
 
+export interface ExistingTrelloAction {
+  text: string
+  status: 'pending' | 'done'
+}
+
 export function buildCoupleTrelloActionsPrompt(
   messages: MessageForDigest[],
   groups: GroupInfo[],
   coupleName: string,
   periodLabel: string,
+  existingActions: ExistingTrelloAction[] = [],
 ): DigestPrompt {
   const groupMap = new Map(groups.map((g) => [g.id, g.name]))
 
@@ -94,6 +100,15 @@ export function buildCoupleTrelloActionsPrompt(
     })
     .join('\n')
 
+  const doneActions = existingActions.filter((a) => a.status === 'done')
+  const pendingActions = existingActions.filter((a) => a.status === 'pending')
+
+  const existingCtx = existingActions.length === 0 ? '' : `
+AÇÕES JÁ REGISTRADAS — NÃO sugira nada igual ou semanticamente similar a estas:
+${doneActions.length > 0 ? `Concluídas (NUNCA recriar):\n${doneActions.map((a) => `  • ${a.text}`).join('\n')}` : ''}
+${pendingActions.length > 0 ? `Em andamento (já estão no Trello):\n${pendingActions.map((a) => `  • ${a.text}`).join('\n')}` : ''}
+`
+
   const system = `Você é um assistente especializado em planejamento de casamentos.
 Sua função é identificar APENAS ações concretas e reais nas mensagens de WhatsApp do grupo do evento.
 
@@ -101,19 +116,20 @@ Regras OBRIGATÓRIAS:
 - Extraia somente ações que surgem DIRETAMENTE do conteúdo das mensagens (prazos, aprovações, orçamentos, decisões pendentes, confirmações de fornecedores).
 - NUNCA invente ações. NUNCA crie ações genéricas, placeholders ou metaações.
 - Exemplos PROIBIDOS de ações a NÃO criar: "verificar se mensagens foram enviadas", "confirmar com a equipe se há atualizações", "checar se o grupo correto está sendo usado".
-- Se as mensagens não contiverem ações concretas de planejamento, responda APENAS com: ${TRELLO_NO_ACTIONS_MARKER}
+- NÃO repita ações já registradas — nem mesmo com palavras diferentes.
+- Se as mensagens não contiverem ações concretas NOVAS, responda APENAS com: ${TRELLO_NO_ACTIONS_MARKER}
 - Escreva em português do Brasil.`
 
   const user = `Mensagens do grupo "${coupleName}" — ${periodLabel}:
 
 ${formattedMessages}
-
-Se houver ações concretas de planejamento do casamento, liste-as abaixo (máximo 5):
+${existingCtx}
+Sugira apenas ações NOVAS e CONCRETAS que ainda não estejam na lista acima (máximo 5):
 - [Alta] descrição da ação urgente
 - [Média] descrição da ação importante
 - [Baixa] descrição da ação de baixa prioridade
 
-Se NÃO houver ações concretas nas mensagens, responda APENAS: ${TRELLO_NO_ACTIONS_MARKER}`
+Se NÃO houver ações concretas NOVAS nas mensagens, responda APENAS: ${TRELLO_NO_ACTIONS_MARKER}`
 
   return { system, user }
 }

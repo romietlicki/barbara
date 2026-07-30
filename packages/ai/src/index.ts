@@ -1,5 +1,5 @@
 export { buildDigestPrompt, buildCoupleDigestPrompt, buildCoupleTrelloActionsPrompt, TRELLO_NO_ACTIONS_MARKER } from './prompt'
-export type { MessageForDigest, GroupInfo, DigestPrompt } from './prompt'
+export type { MessageForDigest, GroupInfo, DigestPrompt, ExistingTrelloAction } from './prompt'
 export { callClaude, streamChatResponse } from './claude'
 export type { ChatMessage } from './claude'
 export { parseDigestOutput } from './parser'
