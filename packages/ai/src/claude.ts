@@ -1,25 +1,22 @@
-import Anthropic from '@anthropic-ai/sdk'
-import type { MessageParam } from '@anthropic-ai/sdk/resources/messages'
+import OpenAI from 'openai'
 import type { DigestPrompt } from './prompt'
 
-const MODEL = 'claude-sonnet-4-6'
+const MODEL = 'gpt-4o'
 const MAX_TOKENS = 4096
 
-let _client: Anthropic | undefined
+let _client: OpenAI | undefined
 
-function getClient(): Anthropic {
+function getClient(): OpenAI {
   if (!_client) {
-    const apiKey = process.env['ANTHROPIC_API_KEY']
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY não configurada')
-    _client = new Anthropic({ apiKey, maxRetries: 3 })
+    const apiKey = process.env['OPENAI_API_KEY']
+    if (!apiKey) throw new Error('OPENAI_API_KEY não configurada')
+    _client = new OpenAI({ apiKey, maxRetries: 3 })
   }
   return _client
 }
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
-// Retorna um ReadableStream<Uint8Array> que emite chunks de texto conforme Claude responde.
-// Ideal para streaming em API routes do Next.js.
 export function streamChatResponse(
   systemPrompt: string,
   history: ChatMessage[],
@@ -28,28 +25,25 @@ export function streamChatResponse(
   const client = getClient()
   const encoder = new TextEncoder()
 
-  const messages: MessageParam[] = [
-    ...history.map((m) => ({ role: m.role, content: m.content })),
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt },
+    ...history.map((m) => ({ role: m.role, content: m.content }) as OpenAI.Chat.ChatCompletionMessageParam),
     { role: 'user', content: userMessage },
   ]
 
   return new ReadableStream({
     async start(controller) {
       try {
-        const stream = client.messages.stream({
+        const stream = await client.chat.completions.create({
           model: MODEL,
           max_tokens: 2048,
-          system: systemPrompt,
           messages,
+          stream: true,
         })
 
-        for await (const event of stream) {
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta.type === 'text_delta'
-          ) {
-            controller.enqueue(encoder.encode(event.delta.text))
-          }
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content
+          if (delta) controller.enqueue(encoder.encode(delta))
         }
       } finally {
         controller.close()
@@ -61,17 +55,19 @@ export function streamChatResponse(
 export async function callClaude(prompt: DigestPrompt): Promise<string> {
   const client = getClient()
 
-  const response = await client.messages.create({
+  const response = await client.chat.completions.create({
     model: MODEL,
     max_tokens: MAX_TOKENS,
-    system: prompt.system,
-    messages: [{ role: 'user', content: prompt.user }],
+    messages: [
+      { role: 'system', content: prompt.system },
+      { role: 'user', content: prompt.user },
+    ],
   })
 
-  const block = response.content[0]
-  if (!block || block.type !== 'text') {
-    throw new Error(`Claude retornou resposta inesperada: type=${block?.type}`)
+  const content = response.choices[0]?.message?.content
+  if (!content) {
+    throw new Error('OpenAI retornou resposta vazia')
   }
 
-  return block.text
+  return content
 }
