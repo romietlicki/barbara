@@ -64,17 +64,12 @@ export class EvolutionApiClient {
     })
   }
 
-  async setWebhook(
-    instanceName: string,
-    webhookUrl: string,
-    webhookSecret: string,
-  ): Promise<void> {
+  async setWebhook(instanceName: string, webhookUrl: string): Promise<void> {
     await this.request<unknown>('POST', `/webhook/set/${instanceName}`, {
       enabled: true,
       url: webhookUrl,
       webhook_by_events: false,
       webhook_base64: false,
-      headers: webhookSecret ? { 'X-Webhook-Token': webhookSecret } : {},
       events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED', 'GROUPS_UPSERT'],
     })
   }

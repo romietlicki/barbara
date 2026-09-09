@@ -34,7 +34,6 @@ export async function connectWhatsAppAction(
   const webhookBaseUrl = process.env['EVOLUTION_WEBHOOK_BASE_URL'] ?? 'http://api:3001'
   const agency = await prisma.agency.findUniqueOrThrow({ where: { id: agencyId } })
   const webhookUrl = `${webhookBaseUrl}/webhooks/wa/${agency.slug}`
-  const webhookSecret = process.env['EVOLUTION_WEBHOOK_SECRET'] ?? ''
 
   try {
     await client.createInstance(tenant.id)
@@ -42,9 +41,9 @@ export async function connectWhatsAppAction(
     // instância já existe — ignora
   }
 
-  // Sempre atualiza o webhook para garantir URL e headers corretos
+  // Sempre atualiza o webhook para garantir URL correta
   try {
-    await client.setWebhook(tenant.id, webhookUrl, webhookSecret)
+    await client.setWebhook(tenant.id, webhookUrl)
   } catch (err) {
     console.error('[whatsapp] Falha ao registrar webhook na Evolution API:', err)
     // não bloqueia — QR code pode ainda funcionar

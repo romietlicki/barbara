@@ -51,15 +51,6 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     ) => {
       const webhookSecret = process.env['EVOLUTION_WEBHOOK_SECRET']
 
-      // DEBUG TEMPORÁRIO — remover após confirmar headers da Evolution API
-      app.log.info({
-        slug: request.params.agencySlug,
-        xWebhookToken: request.headers['x-webhook-token'] ?? '(ausente)',
-        apikey: request.headers['apikey'] ?? '(ausente)',
-        allHeaders: Object.keys(request.headers),
-        secretConfigured: !!webhookSecret,
-      }, 'Webhook: headers recebidos')
-
       // Se o secret estiver configurado, verificar o header enviado pela Evolution API
       if (webhookSecret) {
         const receivedToken = request.headers['x-webhook-token']
@@ -68,9 +59,8 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
           typeof receivedToken !== 'string' ||
           !verifyWebhookToken(receivedToken, webhookSecret)
         ) {
-          // Log sem expor o secret esperado
           app.log.warn(
-            { slug: request.params.agencySlug, ip: request.ip, receivedToken: receivedToken ?? '(ausente)' },
+            { slug: request.params.agencySlug, ip: request.ip },
             'Webhook: token inválido',
           )
           // Retornamos 200 para não revelar ao atacante que a rota existe
