@@ -33,6 +33,7 @@ COPY packages/whatsapp         ./packages/whatsapp/
 
 RUN pnpm --filter @repo/db generate
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN mkdir -p apps/web/public
 RUN pnpm --filter @repo/web build
 
 # ─── Runner ──────────────────────────────────────────────────────────────────

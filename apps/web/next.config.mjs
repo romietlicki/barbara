@@ -16,6 +16,7 @@ if (typeof process.loadEnvFile === 'function') {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   transpilePackages: ['@repo/ai', '@repo/db', '@repo/email', '@repo/queue', '@repo/taskade', '@repo/trello', '@repo/whatsapp'],
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
