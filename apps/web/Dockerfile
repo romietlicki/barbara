@@ -50,6 +50,9 @@ COPY --from=builder /repo/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/public        ./apps/web/public
 
+# Prisma engine não é copiado automaticamente pelo standalone — necessário para linux-musl-openssl-3.0.x
+COPY --from=builder --chown=nextjs:nodejs /repo/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client /app/apps/web/.prisma/client
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

@@ -41,11 +41,7 @@ export class EvolutionApiClient {
   // Cria ou reconfigura uma instância WA.
   // Compatível com Evolution API v1.8.x: criação e webhook são chamadas separadas.
   // Webhook e settings são sempre atualizados mesmo que a instância já exista.
-  async createInstance(
-    instanceName: string,
-    webhookUrl: string,
-    webhookSecret: string,
-  ): Promise<void> {
+  async createInstance(instanceName: string): Promise<void> {
     try {
       await this.request<unknown>('POST', '/instance/create', {
         instanceName,
@@ -53,16 +49,8 @@ export class EvolutionApiClient {
         qrcode: true,
       })
     } catch {
-      // instância já existe — continua para atualizar webhook e settings
+      // instância já existe — ignora e continua
     }
-
-    await this.request<unknown>('POST', `/webhook/set/${instanceName}`, {
-      url: webhookUrl,
-      webhook_by_events: false,
-      webhook_base64: false,
-      headers: { 'X-Webhook-Token': webhookSecret },
-      events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED', 'GROUPS_UPSERT'],
-    })
 
     // groups_ignore: false é obrigatório para capturar mensagens de grupos
     await this.request<unknown>('POST', `/settings/set/${instanceName}`, {
@@ -73,6 +61,21 @@ export class EvolutionApiClient {
       read_status: false,
       sync_full_history: false,
       wavoipToken: 'none',
+    })
+  }
+
+  async setWebhook(
+    instanceName: string,
+    webhookUrl: string,
+    webhookSecret: string,
+  ): Promise<void> {
+    await this.request<unknown>('POST', `/webhook/set/${instanceName}`, {
+      enabled: true,
+      url: webhookUrl,
+      webhook_by_events: false,
+      webhook_base64: false,
+      headers: webhookSecret ? { 'X-Webhook-Token': webhookSecret } : {},
+      events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED', 'GROUPS_UPSERT'],
     })
   }
 

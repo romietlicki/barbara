@@ -37,9 +37,17 @@ export async function connectWhatsAppAction(
   const webhookSecret = process.env['EVOLUTION_WEBHOOK_SECRET'] ?? ''
 
   try {
-    await client.createInstance(tenant.id, webhookUrl, webhookSecret)
+    await client.createInstance(tenant.id)
   } catch {
-    // instância já existe — tenta buscar QR mesmo assim
+    // instância já existe — ignora
+  }
+
+  // Sempre atualiza o webhook para garantir URL e headers corretos
+  try {
+    await client.setWebhook(tenant.id, webhookUrl, webhookSecret)
+  } catch (err) {
+    console.error('[whatsapp] Falha ao registrar webhook na Evolution API:', err)
+    // não bloqueia — QR code pode ainda funcionar
   }
 
   try {

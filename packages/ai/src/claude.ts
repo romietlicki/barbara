@@ -1,7 +1,8 @@
 import OpenAI from 'openai'
 import type { DigestPrompt } from './prompt'
 
-const MODEL = 'gpt-4o'
+const MODEL_CHAT = 'gpt-4o'
+const MODEL_DIGEST = 'gpt-4o-mini'
 const MAX_TOKENS = 4096
 
 let _client: OpenAI | undefined
@@ -35,7 +36,7 @@ export function streamChatResponse(
     async start(controller) {
       try {
         const stream = await client.chat.completions.create({
-          model: MODEL,
+          model: MODEL_CHAT,
           max_tokens: 2048,
           messages,
           stream: true,
@@ -56,7 +57,7 @@ export async function callClaude(prompt: DigestPrompt): Promise<string> {
   const client = getClient()
 
   const response = await client.chat.completions.create({
-    model: MODEL,
+    model: MODEL_DIGEST,
     max_tokens: MAX_TOKENS,
     messages: [
       { role: 'system', content: prompt.system },

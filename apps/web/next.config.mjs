@@ -17,9 +17,13 @@ if (typeof process.loadEnvFile === 'function') {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: ['@repo/ai', '@repo/db', '@repo/email', '@repo/queue', '@repo/taskade', '@repo/trello', '@repo/whatsapp'],
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+    outputFileTracingIncludes: {
+      '/**': ['../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/**'],
+    },
   },
   images: {
     remotePatterns: [
