@@ -13,6 +13,8 @@ COPY packages/db/package.json              ./packages/db/
 COPY packages/db/prisma                    ./packages/db/prisma/
 COPY packages/email/package.json           ./packages/email/
 COPY packages/queue/package.json           ./packages/queue/
+COPY packages/taskade/package.json         ./packages/taskade/
+COPY packages/trello/package.json          ./packages/trello/
 COPY packages/whatsapp/package.json        ./packages/whatsapp/
 RUN pnpm install --frozen-lockfile
 
@@ -25,6 +27,8 @@ COPY packages/config           ./packages/config/
 COPY packages/db               ./packages/db/
 COPY packages/email            ./packages/email/
 COPY packages/queue            ./packages/queue/
+COPY packages/taskade          ./packages/taskade/
+COPY packages/trello           ./packages/trello/
 COPY packages/whatsapp         ./packages/whatsapp/
 
 RUN pnpm --filter @repo/db generate
