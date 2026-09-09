@@ -7,9 +7,12 @@ FROM base AS installer
 WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json                 ./apps/web/
+COPY packages/ai/package.json              ./packages/ai/
 COPY packages/config/package.json          ./packages/config/
 COPY packages/db/package.json              ./packages/db/
 COPY packages/db/prisma                    ./packages/db/prisma/
+COPY packages/email/package.json           ./packages/email/
+COPY packages/queue/package.json           ./packages/queue/
 COPY packages/whatsapp/package.json        ./packages/whatsapp/
 RUN pnpm install --frozen-lockfile
 
@@ -17,8 +20,11 @@ RUN pnpm install --frozen-lockfile
 FROM installer AS builder
 WORKDIR /repo
 COPY apps/web                  ./apps/web/
+COPY packages/ai               ./packages/ai/
 COPY packages/config           ./packages/config/
 COPY packages/db               ./packages/db/
+COPY packages/email            ./packages/email/
+COPY packages/queue            ./packages/queue/
 COPY packages/whatsapp         ./packages/whatsapp/
 
 RUN pnpm --filter @repo/db generate
