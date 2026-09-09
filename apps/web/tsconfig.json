@@ -3,9 +3,14 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"],
+      "@repo/ai": ["../../packages/ai/src/index.ts"],
+      "@repo/db": ["../../packages/db/src/index.ts"],
+      "@repo/email": ["../../packages/email/src/index.ts"],
+      "@repo/queue": ["../../packages/queue/src/index.ts"],
+      "@repo/taskade": ["../../packages/taskade/src/index.ts"],
+      "@repo/trello": ["../../packages/trello/src/index.ts"],
+      "@repo/whatsapp": ["../../packages/whatsapp/src/index.ts"]
     },
     "noEmit": true,
     "isolatedModules": true
