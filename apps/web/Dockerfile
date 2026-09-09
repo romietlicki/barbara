@@ -9,6 +9,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json                 ./apps/web/
 COPY packages/config/package.json          ./packages/config/
 COPY packages/db/package.json              ./packages/db/
+COPY packages/db/prisma                    ./packages/db/prisma/
 COPY packages/whatsapp/package.json        ./packages/whatsapp/
 RUN pnpm install --frozen-lockfile
 
