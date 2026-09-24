@@ -53,6 +53,10 @@ COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/public        ./apps/we
 # Prisma engine não é copiado automaticamente pelo standalone — necessário para linux-musl-openssl-3.0.x
 COPY --from=builder --chown=nextjs:nodejs /repo/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client /app/apps/web/.prisma/client
 
+# Next.js precisa escrever no cache em runtime (revalidateTag/revalidatePath)
+RUN mkdir -p /app/apps/web/.next/cache \
+ && chown -R nextjs:nodejs /app/apps/web/.next
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

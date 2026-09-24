@@ -46,6 +46,9 @@ export function streamChatResponse(
           const delta = chunk.choices[0]?.delta?.content
           if (delta) controller.enqueue(encoder.encode(delta))
         }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Erro ao contatar IA'
+        controller.enqueue(encoder.encode(`\n\n❌ ${msg}`))
       } finally {
         controller.close()
       }
