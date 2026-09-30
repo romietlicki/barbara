@@ -4,8 +4,8 @@ import { streamChatResponse } from '@repo/ai'
 import type { ChatMessage } from '@repo/ai'
 
 // Mensagens brutas recentes — detalhes dos últimos dias
-const RECENT_MESSAGES_DAYS = 14
-const RECENT_MESSAGES_LIMIT = 500
+const RECENT_MESSAGES_DAYS = 5
+const RECENT_MESSAGES_LIMIT = 200
 
 // Digests históricos — resumos compactos de períodos anteriores
 const HISTORICAL_DIGESTS_LIMIT = 30

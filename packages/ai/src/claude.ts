@@ -1,7 +1,7 @@
 import OpenAI from 'openai'
 import type { DigestPrompt } from './prompt'
 
-const MODEL_CHAT = 'gpt-4o'
+const MODEL_CHAT = 'gpt-4o-mini'
 const MODEL_DIGEST = 'gpt-4o-mini'
 const MAX_TOKENS = 4096
 
